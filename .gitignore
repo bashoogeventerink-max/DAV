@@ -1,0 +1,5 @@
+*.csv
+*.txt
+.python-*
+uv_lock
+logfile*
