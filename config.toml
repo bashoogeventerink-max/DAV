@@ -1,7 +1,7 @@
 raw = "data/raw"
 processed = "data/processed"
 input = "_chat.txt"
-current = "your-path-here.parq"
-inputpath = "your-path-here.csv"
+current = "whatsapp-20250923-192055.parq"
+inputpath = "whatsapp-20250923-170023.csv"
 datetime_format = "%d/%m/%Y, %H:%M"
 drop_authors = []
