@@ -1,9 +1,16 @@
 [project]
 name = "dav"
 version = "0.1.0"
-description = "Add your description here"
+description = "This is the code for the Master of Applied Data Science course Data Analysis and Visualisation"
+authors = [
+    {name = "Bas hooge Venterink", email = "bas.hoogeventerink@student.hu.nl"}
+]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "pydantic>=2.11.9",
     "wa-analyzer>=0.4.1",
 ]
+
+[project.urls]
+GitHub = "https://github.com/bashoogeventerink-max/DAV"
