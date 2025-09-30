@@ -14,3 +14,6 @@ dependencies = [
 
 [project.urls]
 GitHub = "https://github.com/bashoogeventerink-max/DAV"
+
+[project.scripts]
+mymodule = "mymodule.main:main"
