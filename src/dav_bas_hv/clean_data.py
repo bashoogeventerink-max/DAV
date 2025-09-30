@@ -74,8 +74,8 @@ def find_emojis(df: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     """Main function to run the data cleaning process."""
-    config_path = Path("../config.toml").resolve()
-    processed_path = Path("../data/processed").resolve()
+    config_path = Path("config.toml").resolve()
+    processed_path = Path("data/processed").resolve()
 
     # Load data
     data_path = get_data_path(config_path)
