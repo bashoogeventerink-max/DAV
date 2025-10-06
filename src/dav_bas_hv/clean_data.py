@@ -8,8 +8,10 @@ import tomllib
 from loguru import logger
 import pytz
 import numpy as np
+from textblob import TextBlob
 from wa_analyzer.humanhasher import humanize
 
+# -------------- Clean Data ----------------
 
 def get_data_path(config_path: Path) -> Path:
     """Reads the configuration file and returns the path to the data file."""
@@ -51,6 +53,38 @@ def anonymize_authors(df: pd.DataFrame, processed_path: Path) -> pd.DataFrame:
     df.rename(columns={"anon_author": "author"}, inplace=True)
     return df
 
+# -------------- Add features ----------------
+
+def get_sentiment_polarity(text: str) -> float:
+    """
+    Calculates the sentiment polarity (-1.0 to 1.0) of a given text.
+    Returns 0.0 (Neutral) for missing or non-string values.
+    """
+    if pd.isna(text):
+        return 0.0 
+    # TextBlob can sometimes struggle with non-string types, so we ensure conversion
+    analysis = TextBlob(str(text))
+    return analysis.sentiment.polarity
+
+def add_sentiment_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds sentiment features ('sentiment_polarity' and 'sentiment_category') 
+    to the DataFrame based on the 'message' column.
+    """
+    # 1. Add numerical polarity score
+    df['sentiment_polarity'] = df['message'].apply(get_sentiment_polarity)
+    
+    # 2. Add categorical sentiment for high-level analysis (using a small buffer for Neutral)
+    def classify_sentiment(polarity):
+        if polarity > 0.05:
+            return 'Positive'
+        elif polarity < -0.05:
+            return 'Negative'
+        else:
+            return 'Neutral'
+            
+    df['sentiment_category'] = df['sentiment_polarity'].apply(classify_sentiment)
+    return df
 
 def find_emojis(df: pd.DataFrame) -> pd.DataFrame:
     """Adds a feature column 'has_emoji' based on message content."""
@@ -82,6 +116,17 @@ def add_living_in_city(df: pd.DataFrame) -> pd.DataFrame:
         "Smeerbeer van Dijk"
     ]
     df["living_in_city"] = np.where(df["author"].isin(city_authors), 1, 0)
+    return df
+
+def technical_background(df: pd.DataFrame) -> pd.DataFrame:
+    """Adds a binary column indicating if the author had a technical background in terms of studying."""
+    tech_background = [
+        "Weda", 
+        "Robert te Vaarwerk", 
+        "Schjöpschen", 
+        "Smeerbeer van Dijk"
+    ]
+    df["tech_background"] = np.where(df["author"].isin(tech_background), 1, 0)
     return df
 
 def add_word_count(df: pd.DataFrame) -> pd.DataFrame:
@@ -132,6 +177,7 @@ def main():
     
     # Add features based on original author names
     df = add_living_in_city(df)
+    df = technical_background(df)
     
     # Anonymize authors after features have been added
     df = anonymize_authors(df, processed_path)
@@ -143,6 +189,7 @@ def main():
     df = flag_image_messages(df)
     df = flag_empty_messages(df)
     df = flag_removed_messages(df)
+    df = add_sentiment_features(df) # <-- New sentiment analysis feature added here
     
     # Save the cleaned data
     now = datetime.now(tz=pytz.timezone('Europe/Amsterdam')).strftime("%Y%m%d-%H%M%S")

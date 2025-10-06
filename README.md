@@ -1,10 +1,10 @@
 # Data Analysis & Visualization
 
-This is 
+This project stores the progress made in the Data Analysis & Visualization-course for Bas hooge Venterink. 
 
 ## Description
 
-An in-depth paragraph about your project and overview of use.
+This
 
 ## Getting Started
 
@@ -22,3 +22,7 @@ An in-depth paragraph about your project and overview of use.
 
 * How to run the program
 * Step-by-step bullets
+
+## Author
+Bas hooge Venterink
+bas.hoogeventerink@student.hu.nl
