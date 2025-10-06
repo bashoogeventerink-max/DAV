@@ -106,6 +106,26 @@ def find_emojis(df: pd.DataFrame) -> pd.DataFrame:
     df["has_emoji"] = df["message"].apply(has_emoji)
     return df
 
+def count_emojis(df: pd.DataFrame) -> pd.DataFrame:
+    """Adds a feature column 'emoji_count' based on message content."""
+    emoji_pattern = re.compile(
+        "["
+        "\U0001f600-\U0001f64f"
+        "\U0001f300-\U0001f5ff"
+        "\U0001f680-\U0001f6ff"
+        "\U0001f1e0-\U0001f1ff"
+        "\U00002702-\U000027b0"
+        "\U000024c2-\U0001f251"
+        "]+",
+        flags=re.UNICODE,
+    )
+
+    def get_emoji_count(text):
+        return len(emoji_pattern.findall(str(text)))
+
+    df["emoji_count"] = df["message"].apply(get_emoji_count)
+    return df
+
 def add_living_in_city(df: pd.DataFrame) -> pd.DataFrame:
     """Adds a binary column indicating if the author is living in a city."""
     city_authors = [
@@ -184,6 +204,7 @@ def main():
     
     # Add other features
     df = find_emojis(df)
+    df = count_emojis(df)
     df = add_word_count(df)
     df = add_time_differences(df)
     df = flag_image_messages(df)
