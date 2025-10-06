@@ -127,11 +127,17 @@ def main():
     df = pd.read_csv(data_path, parse_dates=["timestamp"])
     
     # Clean and transform data
-    df = clean_author_names(df)
-    df = anonymize_authors(df, processed_path)
     df = df.drop(index=[0])
-    df = find_emojis(df)
+    df = clean_author_names(df)
+    
+    # Add features based on original author names
     df = add_living_in_city(df)
+    
+    # Anonymize authors after features have been added
+    df = anonymize_authors(df, processed_path)
+    
+    # Add other features
+    df = find_emojis(df)
     df = add_word_count(df)
     df = add_time_differences(df)
     df = flag_image_messages(df)
