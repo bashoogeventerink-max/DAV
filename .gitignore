@@ -1,5 +1,8 @@
 *.csv
+*.parq
 *.txt
 .python-*
 uv_lock
 logfile*
+vs_code/
+__pycache__/
