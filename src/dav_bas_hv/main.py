@@ -1,4 +1,9 @@
+from test import test_function
+
 # src/mymodule/main.py
 
-if __name__ == '__main__':
-    main()
+def main():
+    test_function()
+
+##if __name__ == '__main__':
+##    main()

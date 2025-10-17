@@ -13,9 +13,9 @@ from wa_analyzer.humanhasher import humanize
 
 # -------------- Clean Data ----------------
 
-def get_data_path(config_path: Path) -> Path:
+def get_data_path(config_path: Path) -> Path: ## Config_path krijgt als type functie een path. Dit is vervolgens ook de output (na het pijltje)
     """Reads the configuration file and returns the path to the data file."""
-    with config_path.open("rb") as f:
+    with config_path.open("rb") as f: # F is the name of the opened config file 
         config = tomllib.load(f)
     processed_path = Path("data/processed").resolve()
     data_path = processed_path / config["inputpath"]
