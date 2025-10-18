@@ -12,12 +12,10 @@ from wa_analyzer.humanhasher import humanize
 
 class DataCleaner:
     """
-    A class to handle core data cleaning and anonymization steps on a DataFrame.
+    A class to handle core data cleaning and feature engineering steps on a DataFrame.
     """
     def __init__(self, input_path: Path, output_path: Path, config: dict):
         """
-        Initializes the cleaner with file paths and configuration.
-        
         :param input_path: Path to the preprocessed (uncleaned) CSV file.
         :param output_path: Path where the final cleaned CSV/Parquet will be saved.
         :param config: The loaded configuration dictionary.
@@ -33,7 +31,6 @@ class DataCleaner:
     def _clean_author_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """Cleans author names by removing leading tilde characters."""
         clean_tilde = r"^~\u202f"
-        # Using .loc for assignment safety
         df.loc[:, "author"] = df["author"].apply(lambda x: re.sub(clean_tilde, "", x))
         return df
 
@@ -73,7 +70,6 @@ class DataCleaner:
         with open(reference_file, "w") as f:
             # Create reference mapping: Anonymized Name -> Original Name
             ref = {v: k for k, v in anon.items()}
-            # Sort the output reference file for consistency
             ref_sorted = {k: ref[k] for k in sorted(ref.keys())}
             json.dump(ref_sorted, f, indent=4)
         
@@ -95,40 +91,53 @@ class DataCleaner:
         """
         logger.info(f"Loading data from: {self.input_path.name}")
         
-        # Load data (assuming timestamp is already a clean datetime column from preprocessing)
         try:
+            # Load data, assuming timestamp is already a clean datetime column
             self.df = pd.read_csv(self.input_path, parse_dates=["timestamp"])
         except Exception as e:
             logger.error(f"Failed to load data from {self.input_path}: {e}")
             raise
         
-        # Drop the first row as per the original script's logic
+        # Drop the first row and reset index as per original logic
         self.df = self.df.drop(index=[0]).reset_index(drop=True)
         
-        # --- Cleaning & Feature Engineering Steps ---
-        logger.info("Starting cleaning steps...")
+        logger.info("Starting cleaning and feature engineering steps...")
         
-        # 1. Clean author names (MUST come first)
+        # 1. Clean author names (Prerequisite for features)
         self.df = self._clean_author_names(self.df)
         
-        # 2. Add features that depend on original author names (NEW STEP)
+        # 2. Add features that depend on original author names
         self.df = self._add_living_in_city(self.df)
         self.df = self._technical_background(self.df)
         
-        # 3. Anonymize authors (MUST come last among author-dependent steps)
+        # 3. Anonymize authors (Last author-dependent step)
         self.df = self._anonymize_authors(self.df)
         
         logger.info("Cleaning steps complete.")
-        # --- End Cleaning & Feature Engineering Steps ---
         
         # Save the cleaned data
         logger.info(f"Saving cleaned data to: {self.output_path.name} and Parquet")
         
-        # Save CSV
         self.df.to_csv(self.output_path, index=False)
-        
-        # Save Parquet
         self.df.to_parquet(self.output_path.with_suffix(".parq"), index=False)
         
         logger.info(f"Cleaning complete. Saved to {self.output_path.name}")
         return self.output_path
+
+# Public function to be used in main.py
+
+def run_data_cleaning(input_path: Path, output_path: Path, config: dict) -> Path:
+    """
+    Main entry point for the data cleaning process.
+    
+    :param input_path: Path to the uncleaned CSV (output of preprocessing).
+    :param output_path: Path to save the final cleaned CSV/Parquet.
+    :param config: The loaded application configuration.
+    :return: Path to the final cleaned CSV file.
+    """
+    cleaner = DataCleaner(
+        input_path=input_path,
+        output_path=output_path,
+        config=config
+    )
+    return cleaner.run()
