@@ -1,3 +1,7 @@
+### Preprocess txt-file exported from WhatsApp into a CSV file with columns: timestamp, author, message 
+### User should specify device type to select appropriate regexes
+### Saves the CSV file to the processed folder
+
 import re
 import sys
 import tomllib
@@ -25,10 +29,12 @@ class WhatsappPreprocessor:
         self.datetime_format = config.datetime_format
         self.drop_authors = config.drop_authors
 
+# Call method to process and save records
     def __call__(self):
         records, _ = self.process()
         self.save(records)
 
+# Function to save records to a CSV file
     def save(self, records: list[tuple]) -> Path:
         df = pd.DataFrame(records, columns=["timestamp", "author", "message"])
         now = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -97,13 +103,14 @@ class WhatsappPreprocessor:
 )
 def main(device: str):
     with open("config.toml", "rb") as f:
-        config = tomllib.load(f)
+        config = tomllib.load(f) # Loading configuration from TOML file
         raw = Path(config["raw"])
         processed = Path(config["processed"])
         datafile = Path(config["input"])
         datetime_format = config["datetime_format"]
         drop_authors = config["drop_authors"]
 
+    # Use function to select regexes based on device type from settings.py
     if device.lower() == "ios":
         logger.info("Using iOS regexes")
         regexes: BaseRegexes = iosRegexes
@@ -133,7 +140,7 @@ def main(device: str):
         datetime_format=datetime_format,
         drop_authors=drop_authors,
     )
-    preprocessor = WhatsappPreprocessor(preprocessconfig)
+    preprocessor = WhatsappPreprocessor(preprocessconfig) # Apply the preprocessor on the datafile saved in raw folder
     preprocessor()
 
 
