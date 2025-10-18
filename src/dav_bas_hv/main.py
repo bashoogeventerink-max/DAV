@@ -5,6 +5,8 @@ from pathlib import Path
 # Importing necessary functions from other modules
 from test import test_function
 from preprocess import main as preprocess_main 
+from clean_data_v2 import DataCleaner
+# from clean_data_v2 import 
 
 # Load toml configuration
 def load_config(config_path="config.toml"):
@@ -23,17 +25,19 @@ def main():
     if not config:
         return
     
-    processed_filename = config["inputpath"]
+    # ---- Set paths with Pathlib ----
+
+    preprocessed_filename = config["preprocess_csv"]
     data_folder_str = Path("data/processed").resolve()
 
     #convert data folder string to a path object
     data_folder = Path(data_folder_str)
-    processed_filepath = data_folder / processed_filename
+    processed_filepath = data_folder / preprocessed_filename
 
     if processed_filepath.exists():
-        print(f"Processed file '{processed_filename} already exists at '{processed_filepath}'. Skipping preprocessing.")
+        print(f"Preprocessed file '{preprocessed_filename} already exists at '{processed_filepath}'. Skipping preprocessing.")
     else:
-        print(f"Processed file '{processed_filename}' not found. Running preprocessing...")
+        print(f"Preprocessed file '{preprocessed_filename}' not found. Running preprocessing...")
     
         preprocess_main()
 
