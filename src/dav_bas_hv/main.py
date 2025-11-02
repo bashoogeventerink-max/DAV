@@ -49,14 +49,13 @@ def main():
         print(f"Cleaned file '{cleaned_filename}' already exists at '{cleaned_filepath}'. Skipping cleaning.")
     else:
         print(f"Cleaned file '{cleaned_filename}' not found. Running cleaning...")
+        cleaned_data_path = clean_data_main(
+            input_path=preprocessed_filepath,
+            output_path=cleaned_filepath,
+            config=config
+        )
 
-    cleaned_data_path = clean_data_main(
-        input_path=preprocessed_filepath,
-        output_path=cleaned_filepath,
-        config=config
-    )
-
-    print("Cleaning completed. Cleaned data saved to: {cleaned_data_path}")
+        print("Cleaning completed. Cleaned data saved to: {cleaned_data_path}")
 
 if __name__ == '__main__':
     main()
