@@ -34,17 +34,14 @@ def main():
     preprocessed_filepath = data_folder / preprocessed_filename
     cleaned_filepath = data_folder / cleaned_filename
 
-
     # ---- Preprocessing (Creates preprocess csv) ----
 
     if preprocessed_filepath.exists():
         print(f"Preprocessed file '{preprocessed_filename} already exists at '{preprocessed_filepath}'. Skipping preprocessing.")
     else:
         print(f"Preprocessed file '{preprocessed_filename}' not found. Running preprocessing...")
-    
-    preprocess_main()
-
-    print("Preprocessing completed.")
+        preprocess_main()
+        print("Preprocessing completed.")
     
     # ---- Cleaning (Creates cleaned csv) ----
 
@@ -53,7 +50,13 @@ def main():
     else:
         print(f"Cleaned file '{cleaned_filename}' not found. Running cleaning...")
 
-    clean_data_main()
+    cleaned_data_path = clean_data_main(
+        input_path=preprocessed_filepath,
+        output_path=cleaned_filepath,
+        config=config
+    )
+
+    print("Cleaning completed. Cleaned data saved to: {cleaned_data_path}")
 
 if __name__ == '__main__':
     main()
