@@ -3,10 +3,8 @@ import tomllib
 from pathlib import Path
 
 # Importing necessary functions from other modules
-from test import test_function
 from preprocess import main as preprocess_main 
 from clean_data_v2 import run_data_cleaning as clean_data_main
-# from clean_data_v2 import 
 
 # Load toml configuration
 def load_config(config_path="config.toml"):
@@ -56,8 +54,6 @@ def main():
         print(f"Cleaned file '{cleaned_filename}' not found. Running cleaning...")
 
     clean_data_main()
-
-    test_function()
 
 if __name__ == '__main__':
     main()
