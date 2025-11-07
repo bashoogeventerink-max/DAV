@@ -1,5 +1,7 @@
+[directories]
 raw = "data/raw"
 processed = "data/processed"
+
 input = "_chat.txt"
 current = "whatsapp-20251013-212815.parq"
 preprocess_csv = "whatsapp-20251018-161422-preprocess.csv"

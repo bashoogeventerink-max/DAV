@@ -13,6 +13,8 @@ from pydantic import BaseModel
 HOUR = 60 * 60
 DAY = HOUR * 24
 
+# Consistent structure for three attributes
+
 class BaseRegexes(BaseModel):
     timestamp: str
     author: str
