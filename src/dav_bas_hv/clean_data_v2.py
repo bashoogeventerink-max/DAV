@@ -34,6 +34,9 @@ class DataCleaner:
         df.loc[:, "author"] = df["author"].apply(lambda x: re.sub(clean_tilde, "", x))
         return df
 
+    # The following two columns are added based on the name of the author in a unique dataset of the maker of the project. 
+    # These features are not generalizable to other datasets.
+    
     def _add_living_in_city(self, df: pd.DataFrame) -> pd.DataFrame:
         """Adds a binary column indicating if the author is living in a city."""
         logger.info("    -> Adding 'living_in_city' feature.")
