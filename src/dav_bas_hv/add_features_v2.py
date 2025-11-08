@@ -118,9 +118,18 @@ class FeatureEngineer:
         df = df.sort_values("timestamp").reset_index(drop=True)
         
         df["time_diff"] = df["timestamp"].diff()
+
+        # Seconds, Minutes, Hours
         df["react_time_sec"] = df["time_diff"].dt.total_seconds()
+        df["react_time_sec_plus_1"] = df["react_time_sec"] + 1 # To avoid division by zero in analyses
+        df["react_time_sec_log"] = np.log(df["react_time_sec_plus_1"]) # Log-transform for skewed distribution
         df["react_time_min"] = df["react_time_sec"] / 60
+        df["react_time_min_plus_1"] = df["react_time_min"] + 1 # To avoid division by zero in analyses
+        df["react_time_min_log"] = np.log(df["react_time_min_plus_1"]) # Log-transform for skewed distribution                                                                                 
         df["react_time_hr"] = df["react_time_sec"] / 3600
+        df["react_time_hr_plus_1"] = df["react_time_hr"] + 1 # To avoid division by zero in analyses
+        df["react_time_hr_log"] = np.log(df["react_time_hr_plus_1"]) # Log-transform for skewed distribution
+
         df.drop(columns=["time_diff"], inplace=True)
         return df
 

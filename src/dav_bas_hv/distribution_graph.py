@@ -36,8 +36,8 @@ class DistributionAnalyzer:
         logger.info("    -> Generating KDE distribution plot.")
         
         # Split data based on the binary feature
-        city_dwellers = df[df['living_in_city'] == 1]['react_time_min']
-        non_city_dwellers = df[df['living_in_city'] == 0]['react_time_min']
+        city_dwellers = df[df['living_in_city'] == 1]['react_time_min_log']
+        non_city_dwellers = df[df['living_in_city'] == 0]['react_time_min_log']
 
         # Create the figure
         fig, ax = plt.subplots(figsize=(10, 6))
