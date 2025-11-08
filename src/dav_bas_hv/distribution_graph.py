@@ -53,9 +53,6 @@ class DistributionAnalyzer:
         ax.set_xlabel('Response time in minutes', fontsize=12)
         ax.set_ylabel('Probability Density', fontsize=12)
         ax.grid(axis='y', linestyle='--', alpha=0.6)
-
-        # Set x-limit for better visualization of the dense area
-        ax.set_xlim(0, 30) 
         
         ax.legend(loc='upper right')
         
