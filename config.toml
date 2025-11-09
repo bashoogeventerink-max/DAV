@@ -5,9 +5,13 @@ processed = "data/processed"
 input = "_chat.txt"
 current = "whatsapp-20251013-212815.parq"
 preprocess_csv = "whatsapp-20251018-161422-preprocess.csv"
+preprocess_parq = "whatsapp-20251018-161422-preprocess.parq"
 cleaned_csv = "whatsapp-20251018-161422-cleaned.csv"
+cleaned_parq = "whatsapp-20251018-161422-cleaned.parq"
 feature_engineered_csv = "whatsapp-20251018-161422-feature.csv"
+feature_engineered_parq = "whatsapp-20251018-161422-feature.parq"
 
+categories_plot_png = "categories_plot.png"
 distribution_plot_png = "distribution_plot.png"
 correlation_plot_png = "correlation_plot.png"
 

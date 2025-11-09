@@ -25,6 +25,18 @@ class FeatureEngineer:
         
         # Ensure the output directory exists
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _add_timestamp_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds timestamp-based features to the DataFrame."""
+        logger.info("    -> Adding timestamp features.")
+        df['year'] = df['timestamp'].dt.year
+        df['month'] = df['timestamp'].dt.month
+        df['day'] = df['timestamp'].dt.day
+        df['hour'] = df['timestamp'].dt.hour
+        df['minute'] = df['timestamp'].dt.minute
+        df['day_of_week'] = df['timestamp'].dt.day_name()
+        df['is_weekend'] = np.where(df['day_of_week'].isin(['Saturday', 'Sunday']), 1, 0)
+        return df
         
     def _get_sentiment_polarity(self, text: Union[str, float]) -> float:
         """
@@ -188,6 +200,7 @@ class FeatureEngineer:
         logger.info("Starting feature engineering steps...")
         
         # Apply all message-based feature engineering steps
+        self.df = self._add_timestamp_features(self.df)
         self.df = self._add_word_count(self.df)
         self.df = self._add_time_differences(self.df)
         self.df = self._flag_image_messages(self.df)

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from loguru import logger
 from scipy import stats
+from matplotlib.ticker import FixedLocator
 
 class CorrelationAnalyzer:
     """
@@ -67,6 +68,9 @@ class CorrelationAnalyzer:
         df['tech_label'] = df['tech_background'].astype(int).astype(str).replace(
             {'0': 'No Technical Background', '1': 'Technical Background'}
         )
+
+        # --- Calculate Group Sizes (N) ---
+        group_counts = df['tech_label'].value_counts().to_dict()
         
         # Create the figure and axes
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -85,6 +89,31 @@ class CorrelationAnalyzer:
             linewidth=1.5,
             ax=ax
         )
+
+
+        # --- NEW: Add N-labels above the bars ---
+        for i, bar in enumerate(ax.patches):
+            # Get the bar's x-label (e.g., 'No Technical Background')
+            # The order of the bars matches the order in value_counts() if not sorted 
+            # by default, but iterating through the categories is safer.
+            category_label = df['tech_label'].unique()[i]
+            
+            # Get the count for this label
+            N_count = group_counts.get(category_label, 0)
+            N_text = f"N={N_count}"
+
+            # Add the text label slightly above the bar/error bar
+            # bar.get_height() is the mean (proportion) of 'has_emoji'
+            # We use an offset of 0.01 for visual spacing
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, # Center the text horizontally
+                bar.get_height() + 0.01,           # Position text slightly above the bar
+                N_text,
+                ha='center',                       # Horizontal alignment: center
+                va='bottom',                       # Vertical alignment: bottom
+                fontsize=10,
+                color='black'
+            )
 
         # --- Add Statistical Annotation to the Graph ---
         corr_text = f"Correlation (r): {correlation_coefficient:.2f}"
@@ -115,7 +144,9 @@ class CorrelationAnalyzer:
         # Format Y-axis as percentage
         # Use fig.canvas.draw() to ensure ticks are calculated before formatting
         fig.canvas.draw()
-        ax.set_yticklabels(['{:.0f}%'.format(y * 100) for y in ax.get_yticks()])
+        tick_locs = ax.get_yticks()
+        ax.yaxis.set_major_locator(FixedLocator(tick_locs))
+        ax.set_yticklabels(['{:.0f}%'.format(y * 100) for y in tick_locs])
 
         # --- Enhance Aesthetics ---
         ax.grid(axis='y', linestyle='--', alpha=0.7)
