@@ -9,6 +9,7 @@ cleaned_csv = "whatsapp-20251018-161422-cleaned.csv"
 feature_engineered_csv = "whatsapp-20251018-161422-feature.csv"
 
 distribution_plot_png = "distribution_plot.png"
+correlation_plot_png = "correlation_plot.png"
 
 datetime_format = "%d-%m-%Y %H:%M"
 drop_authors = []

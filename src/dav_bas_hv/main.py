@@ -7,6 +7,7 @@ from preprocess import main as preprocess_main
 from clean_data_v2 import run_data_cleaning as clean_data_main
 from add_features_v2 import run_feature_engineering as feature_engineering_main
 from distribution_graph import run_distribution_analysis as distribution_analysis_main
+from correlation_graph import run_correlation_analysis as correlation_analysis_main
 
 # Load toml configuration
 def load_config(config_path="config.toml"):
@@ -31,6 +32,8 @@ def main():
     cleaned_filename = directories_config["cleaned_csv"]
     feature_engineered_filename = directories_config["feature_engineered_csv"]
     distribution_plot_filename = directories_config["distribution_plot_png"]
+    correlation_plot_filename = directories_config["correlation_plot_png"]
+
 
     # ---- Folder paths with Pathlib ----
     data_folder_str = Path("data/processed").resolve()
@@ -45,6 +48,7 @@ def main():
     cleaned_filepath = data_folder / cleaned_filename
     feature_engineered_filepath = data_folder / feature_engineered_filename
     distribution_plot_filepath = img_folder / distribution_plot_filename
+    correlation_plot_filepath = img_folder / correlation_plot_filename
 
     # ---- Preprocessing (Creates preprocess csv) ----
 
@@ -94,6 +98,18 @@ def main():
             config=config
         )
         print(f"Distribution analysis completed. Plot saved to: {distribution_plot_path}")
+
+    # ----- Correlation Analysis -----
+    if correlation_plot_filepath.exists():
+        print(f"Correlation plot '{correlation_plot_filename}' already exists at '{correlation_plot_filepath}'. Skipping making graph.")
+    else:
+        print(f"Correlation plot '{correlation_plot_filename}' not found. Running correlation analysis...")
+        correlation_plot_path = correlation_analysis_main(
+            input_path=feature_engineered_filepath,
+            output_path=correlation_plot_filepath,
+            config=config
+        )
+        print(f"Correlation analysis completed. Plot saved to: {correlation_plot_path}")
 
 if __name__ == '__main__':
     main()
