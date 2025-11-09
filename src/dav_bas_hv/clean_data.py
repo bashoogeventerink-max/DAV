@@ -25,7 +25,6 @@ def get_data_path(config_path: Path) -> Path: ## Config_path krijgt als type fun
         )
     return data_path
 
-
 def clean_author_names(df: pd.DataFrame) -> pd.DataFrame:
     """Cleans author names by removing leading tilde characters."""
     clean_tilde = r"^~\u202f"

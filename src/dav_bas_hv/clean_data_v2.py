@@ -61,6 +61,18 @@ class DataCleaner:
         ]
         df.loc[:, "tech_background"] = np.where(df["author"].isin(tech_background), 1, 0)
         return df
+    
+    def _living_with_partner(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a binary column indicating if the author is living with a partner."""
+        logger.info("    -> Adding 'living_with_partner' feature.")
+        partner_authors = [
+            "Bas hooge Venterink", 
+            "Thies Jan Weijmans",
+            "Smeerbeer van Dijk"
+        ]
+
+        df.loc[:, "living_with_partner"] = np.where(df["author"].isin(partner_authors), 1, 0)
+        return df
 
     def _anonymize_authors(self, df: pd.DataFrame) -> pd.DataFrame:
         """Anonymizes author names and saves a reference file."""

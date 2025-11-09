@@ -31,6 +31,7 @@ class FeatureEngineer:
         logger.info("    -> Adding timestamp features.")
         df['year'] = df['timestamp'].dt.year
         df['month'] = df['timestamp'].dt.month
+        df['week'] = df['timestamp'].dt.isocalendar().week
         df['day'] = df['timestamp'].dt.day
         df['hour'] = df['timestamp'].dt.hour
         df['minute'] = df['timestamp'].dt.minute
@@ -110,6 +111,24 @@ class FeatureEngineer:
             return len(emoji_pattern.findall(str(text)))
 
         df["emoji_count"] = df["message"].apply(get_emoji_count)
+        return df
+    
+    def _is_question(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'is_question' indicating if the message is a question."""
+        logger.info("    -> Adding 'is_question' feature.")
+        df["is_question"] = df["message"].astype(str).apply(lambda x: '?' in x).astype(int)
+        return df
+    
+    def _meet_up_feature(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'mentions_meet_up' indicating if the message mentions to meet up."""
+        logger.info("    -> Adding 'mentions_meet_up' feature.")
+        meet_up_keywords = [
+            'afspreken', 'biertje', 'bier', 'vnv', 'vanavond', 'drinken', 'pils', 'pilsje', 'wat doen', 'weekend', 'vrijdag', 'vrijdagavond', 'zaterdag', 'zaterdagavond'            
+        ]
+
+        df["mentions_meet_up"] = df["message"].astype(str).str.lower().apply(
+            lambda x: any(word in x for word in meet_up_keywords)
+        ).astype(int)
         return df
 
     def _add_word_count(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -203,6 +222,8 @@ class FeatureEngineer:
         self.df = self._add_timestamp_features(self.df)
         self.df = self._add_word_count(self.df)
         self.df = self._add_time_differences(self.df)
+        self.df = self._is_question(self.df)
+        self.df = self._meet_up_feature(self.df)
         self.df = self._flag_image_messages(self.df)
         self.df = self._flag_empty_messages(self.df)
         self.df = self._flag_removed_messages(self.df)
