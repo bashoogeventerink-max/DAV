@@ -29,8 +29,8 @@ def main():
     directories_config = config["directories"]
     preprocessed_filename = directories_config["preprocess_csv"]
     cleaned_filename = directories_config["cleaned_csv"]
-    feature_engineered_filename = config.get("feature_engineered_csv", "feature_engineered.csv") # This key is still fine as it uses .get() with a default
-    distribution_plot_filename = config.get("distribution_plot_png", "distribution_plot.png") # This key is still fine as it uses .get() with a default
+    feature_engineered_filename = directories_config["feature_engineered_csv"]
+    distribution_plot_filename = directories_config["distribution_plot_png"]
 
     # ---- Folder paths with Pathlib ----
     data_folder_str = Path("data/processed").resolve()

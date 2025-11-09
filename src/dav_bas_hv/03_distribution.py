@@ -25,7 +25,7 @@ class DistributionAnalyzer:
         # Ensure the output directory exists
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         
-    def _generate_plot(self, df: pd.DataFrame) -> plt.Figure:
+    def _generate_prob_dens_plot(self, df: pd.DataFrame) -> plt.Figure:
         """
         Generates the KDE plot comparing 'react_time_min' distribution 
         based on the 'living_in_city' flag.
@@ -47,10 +47,10 @@ class DistributionAnalyzer:
         sns.kdeplot(city_dwellers, color='limegreen', fill=True, alpha=0.5, label='Away from hometown', ax=ax)
 
         # Apply titles and labels
-        fig.suptitle('Staying Put, Responding Quicker: How Location Matters', fontsize=18, y=1.0)
-        ax.set_title('Friends living in hometown respond to messages significantly faster than those who have moved away.', fontsize=10, loc='center', y=1.0)
+        fig.suptitle('Response Time: How Location Matters', fontsize=18, y=1.0)
+        ax.set_title('Friends living in hometown responsd to messages slower than those who have moved away.', fontsize=10, loc='center', y=1.0)
         
-        ax.set_xlabel('Response time in minutes', fontsize=12)
+        ax.set_xlabel('Response time in log minutes', fontsize=12)
         ax.set_ylabel('Probability Density', fontsize=12)
         ax.grid(axis='y', linestyle='--', alpha=0.6)
 
@@ -94,7 +94,7 @@ class DistributionAnalyzer:
         logger.info("Starting distribution analysis and visualization...")
         
         # Generate the plot
-        fig = self._generate_plot(self.df)
+        fig = self._generate_prob_dens_plot(self.df)
         
         # Save the figure
         logger.info(f"Saving distribution plot to: {self.output_path.name}")

@@ -6,6 +6,9 @@ input = "_chat.txt"
 current = "whatsapp-20251013-212815.parq"
 preprocess_csv = "whatsapp-20251018-161422-preprocess.csv"
 cleaned_csv = "whatsapp-20251018-161422-cleaned.csv"
+feature_engineered_csv = "whatsapp-20251018-161422-feature.csv"
+
+distribution_plot_png = "distribution_plot.png"
 
 datetime_format = "%d-%m-%Y %H:%M"
 drop_authors = []
