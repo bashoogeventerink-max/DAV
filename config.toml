@@ -11,6 +11,7 @@ cleaned_parq = "whatsapp-20251018-161422-cleaned.parq"
 feature_engineered_csv = "whatsapp-20251018-161422-feature.csv"
 feature_engineered_parq = "whatsapp-20251018-161422-feature.parq"
 
+time_series_plot_png = "time_series_plot.png"
 categories_plot_png = "categories_plot.png"
 distribution_plot_png = "distribution_plot.png"
 correlation_plot_png = "correlation_plot.png"

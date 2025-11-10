@@ -8,6 +8,7 @@ from clean_data import run_data_cleaning as clean_data_main
 from add_features import run_feature_engineering as feature_engineering_main
 
 # Importing analysis functions
+from time_series import run_dual_axis_analysis as time_series_main
 from categories_graph import run_categories_analysis as categories_analysis_main
 from distribution_graph import run_distribution_analysis as distribution_analysis_main
 from correlation_graph import run_correlation_analysis as correlation_analysis_main
@@ -34,6 +35,7 @@ def main():
     preprocessed_filename = directories_config["preprocess_csv"]
     cleaned_filename = directories_config["cleaned_csv"]
     feature_engineered_filename = directories_config["feature_engineered_csv"]
+    time_series_plot_filename = directories_config["time_series_plot_png"]
     categories_plot_filename = directories_config["categories_plot_png"]
     distribution_plot_filename = directories_config["distribution_plot_png"]
     correlation_plot_filename = directories_config["correlation_plot_png"]
@@ -51,6 +53,7 @@ def main():
     preprocessed_filepath = data_folder / preprocessed_filename
     cleaned_filepath = data_folder / cleaned_filename
     feature_engineered_filepath = data_folder / feature_engineered_filename
+    time_series_plot_filepath = img_folder / time_series_plot_filename
     categories_plot_filepath = img_folder / categories_plot_filename
     distribution_plot_filepath = img_folder / distribution_plot_filename
     correlation_plot_filepath = img_folder / correlation_plot_filename
@@ -90,6 +93,19 @@ def main():
             config=config
         )
         print(f"Feature engineering completed. Final data saved to: {feature_engineered_data_path}")
+
+    # ----- Time Series Analysis -----
+
+    if time_series_plot_filepath.exists():
+        print(f"Time series plot '{time_series_plot_filename}' already exists at '{time_series_plot_filepath}'. Skipping making graph.")
+    else:
+        print(f"Time series plot '{time_series_plot_filename}' not found. Running time series analysis...")
+        time_series_plot_path = time_series_main(
+            input_path=feature_engineered_filepath,
+            output_path=time_series_plot_filepath,
+            config=config
+        )
+        print(f"Time series analysis completed. Plot saved to: {time_series_plot_path}")
 
     # ----- Categories Analysis -----
     if categories_plot_filepath.exists():
