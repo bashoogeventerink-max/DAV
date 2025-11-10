@@ -12,6 +12,7 @@ from time_series import run_dual_axis_analysis as time_series_main
 from categories_graph import run_categories_analysis as categories_analysis_main
 from distribution_graph import run_distribution_analysis as distribution_analysis_main
 from correlation_graph import run_correlation_analysis as correlation_analysis_main
+from dimensionality_graph import run_svd_analysis as svd_analysis_main
 
 # Load toml configuration
 def load_config(config_path="config.toml"):
@@ -39,6 +40,7 @@ def main():
     categories_plot_filename = directories_config["categories_plot_png"]
     distribution_plot_filename = directories_config["distribution_plot_png"]
     correlation_plot_filename = directories_config["correlation_plot_png"]
+    dimensionality_plot_filename = directories_config["dimensionality_plot_png"]
 
 
     # ---- Folder paths with Pathlib ----
@@ -57,6 +59,7 @@ def main():
     categories_plot_filepath = img_folder / categories_plot_filename
     distribution_plot_filepath = img_folder / distribution_plot_filename
     correlation_plot_filepath = img_folder / correlation_plot_filename
+    dimensionality_plot_filepath = img_folder / dimensionality_plot_filename
 
     # ---- Preprocessing (Creates preprocess csv) ----
 
@@ -143,6 +146,18 @@ def main():
             config=config
         )
         print(f"Correlation analysis completed. Plot saved to: {correlation_plot_path}")
+    
+    # ----- Dimensionality Analysis -----
+    if dimensionality_plot_filepath.exists():
+        print(f"Dimensionality plot '{dimensionality_plot_filename}' already exists at '{dimensionality_plot_filepath}'. Skipping making graph.")
+    else:
+        print(f"Dimensionality plot '{dimensionality_plot_filename}' not found. Running dimensionality analysis...")
+        dimensionality_plot_path = svd_analysis_main(
+            input_path=feature_engineered_filepath,
+            output_path=dimensionality_plot_filepath,
+            config=config
+        )
+        print(f"Dimensionality analysis completed. Plot saved to: {dimensionality_plot_path}")
 
 if __name__ == '__main__':
     main()
