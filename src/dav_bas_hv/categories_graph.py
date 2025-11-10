@@ -47,6 +47,13 @@ class MeetingUpQuestionsAnalyzer:
             (df['is_question'] == 1) & (df['mentions_meet_up'] == 1)
         ).astype(int)
 
+        # --- Calculate Global Statistics for Title ---
+        total_texts = len(df)
+        total_meeting_up_questions_N = df['is_meeting_up_question'].sum()
+        
+        # Calculate percentage of ALL texts that are meeting-up questions
+        total_percentage = (total_meeting_up_questions_N / total_texts) * 100 if total_texts > 0 else 0
+
         # 2. Group by both 'year' and the condition ('living_in_city') and sum the questions
         yearly_counts = df.groupby(['year', 'living_in_city'])[
             'is_meeting_up_question'
@@ -114,10 +121,10 @@ class MeetingUpQuestionsAnalyzer:
         # Plot the City Living percentage
         ax.plot(
             yearly_stats['year'],
-            yearly_stats['pct_city_living'],
+            yearly_stats['pct_away_from_hometown_living'],
             label='Living away from Hometown',
             marker='s',
-            linestyle='--',
+            linestyle='-',
             color='#ff7f0e' # Orange
         )
 
@@ -130,6 +137,25 @@ class MeetingUpQuestionsAnalyzer:
         # Ensure X-axis ticks are integers for years
         # Use a list of year values to set the ticks
         ax.set_xticks(yearly_stats['year'].astype(int).tolist())
+
+        # 1. Adjust the y-axis minimum to create space for the N counts
+        # Set new bottom limit to allow space for text.
+        ax.set_ylim(bottom=-5) 
+        
+        # 2. Loop through years and annotate the total count
+        for x, n in zip(yearly_stats['year'], yearly_stats['total_meeting_up_questions']):
+            # Position the text at y=-3 (within the new margin).
+            # We format N with a comma for better readability.
+            ax.text(
+                x, 
+                -3, 
+                f"N={n:,.0f}", 
+                ha='center',
+                va='center',
+                fontsize=9,
+                color='black',
+                weight='bold'
+            )
 
         # Add a legend
         ax.legend(loc='upper right', fontsize=10)

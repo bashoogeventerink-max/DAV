@@ -82,7 +82,7 @@ class DualAxisTrendsAnalyzer:
         # Plot raw data (solid line)
         ax1.plot(
             trends_df.index, trends_df['message_count'], color=color_volume, 
-            linewidth=1.5, linestyle='-', alpha=0.8, label='Volume (Raw)'
+            linewidth=1.5, linestyle='-', alpha=0.8, label='Monthly Volume Messages'
         )
 
         # Plot trend line (dashed line)
