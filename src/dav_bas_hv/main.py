@@ -4,8 +4,8 @@ from pathlib import Path
 
 # Importing necessary functions from other modules
 from preprocess import main as preprocess_main 
-from clean_data_v2 import run_data_cleaning as clean_data_main
-from add_features_v2 import run_feature_engineering as feature_engineering_main
+from clean_data import run_data_cleaning as clean_data_main
+from add_features import run_feature_engineering as feature_engineering_main
 
 # Importing analysis functions
 from categories_graph import run_categories_analysis as categories_analysis_main
