@@ -43,8 +43,8 @@ class DistributionAnalyzer:
         fig, ax = plt.subplots(figsize=(10, 6))
 
         # Use seaborn for KDE to get the smooth distribution curves
-        sns.kdeplot(non_city_dwellers, color='darkorange', fill=True, alpha=0.5, label='Living in hometown', ax=ax)
-        sns.kdeplot(city_dwellers, color='limegreen', fill=True, alpha=0.5, label='Away from hometown', ax=ax)
+        sns.kdeplot(non_city_dwellers, color='grey', fill=True, alpha=0.5, label='Living in hometown', ax=ax)
+        sns.kdeplot(city_dwellers, color='darkorange', fill=True, alpha=0.5, label='Away from hometown', ax=ax)
 
         # Apply titles and labels
         fig.suptitle('Response Time: How Location Matters', fontsize=18, y=1.0)

@@ -62,25 +62,25 @@ class MeetingUpQuestionsAnalyzer:
         # 4. Rename columns for clarity (0 is non_city, 1 is city)
         yearly_stats.columns = [
             'year', 
-            'meeting_up_questions_non_city', 
-            'meeting_up_questions_city'
+            'meeting_up_questions_hometown', 
+            'meeting_up_questions_away_from_hometown'
         ]
 
         # 5. Calculate the total meeting up questions
         yearly_stats['total_meeting_up_questions'] = (
-            yearly_stats['meeting_up_questions_non_city'] + yearly_stats['meeting_up_questions_city']
+            yearly_stats['meeting_up_questions_hometown'] + yearly_stats['meeting_up_questions_away_from_hometown']
         )
 
         # 6. Calculate the percentages (%)
         # We use .div() for clarity and efficiency when dividing multiple columns
-        yearly_stats[['pct_non_city_living', 'pct_city_living']] = (
-            yearly_stats[['meeting_up_questions_non_city', 'meeting_up_questions_city']]
+        yearly_stats[['pct_hometown_living', 'pct_away_from_hometown_living']] = (
+            yearly_stats[['meeting_up_questions_hometown', 'meeting_up_questions_away_from_hometown']]
             .div(yearly_stats['total_meeting_up_questions'], axis=0) * 100
         )
 
         # Handle cases where total_meeting_up_questions is 0 (division by zero results in NaN)
-        yearly_stats[['pct_non_city_living', 'pct_city_living']] = yearly_stats[
-            ['pct_non_city_living', 'pct_city_living']
+        yearly_stats[['pct_hometown_living', 'pct_away_from_hometown_living']] = yearly_stats[
+            ['pct_hometown_living', 'pct_away_from_hometown_living']
         ].fillna(0)
         
         return yearly_stats
@@ -104,18 +104,18 @@ class MeetingUpQuestionsAnalyzer:
         # Plot the Non-City Living percentage
         ax.plot(
             yearly_stats['year'],
-            yearly_stats['pct_non_city_living'],
-            label='Non-City Living (living\_in\_city = 0)',
+            yearly_stats['pct_hometown_living'],
+            label='Living in Hometown',
             marker='o',
             linestyle='-',
-            color='#1f77b4' # Muted blue
+            color='#808080' # Grey
         )
 
         # Plot the City Living percentage
         ax.plot(
             yearly_stats['year'],
             yearly_stats['pct_city_living'],
-            label='City Living (living\_in\_city = 1)',
+            label='Living away from Hometown',
             marker='s',
             linestyle='--',
             color='#ff7f0e' # Orange

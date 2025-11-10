@@ -83,7 +83,7 @@ class CorrelationAnalyzer:
             data=df,
             hue='tech_label',
             legend=False,
-            palette=['#4c72b0', '#55a868'],
+            palette=['#ff7f0e', '#808080'],
             errcolor='gray', 
             capsize=0.1,
             linewidth=1.5,
