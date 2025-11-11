@@ -119,9 +119,7 @@ def main():
     else:
         print(f"Distribution plot '{distribution_plot_filename}' not found. Running distribution analysis...")
         distribution_plot_path = distribution_analysis_main(
-            input_path=feature_engineered_filepath,
-            output_path=distribution_plot_filepath,
-            config=config
+            output_filename=distribution_plot_filename
         )
         print(f"Distribution analysis completed. Plot saved to: {distribution_plot_path}")
 
