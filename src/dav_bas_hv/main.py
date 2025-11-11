@@ -139,9 +139,7 @@ def main():
     else:
         print(f"Dimensionality plot '{dimensionality_plot_filename}' not found. Running dimensionality analysis...")
         dimensionality_plot_path = svd_analysis_main(
-            input_path=feature_engineered_filepath,
-            output_path=dimensionality_plot_filepath,
-            config=config
+            output_filename=dimensionality_plot_filename
         )
         print(f"Dimensionality analysis completed. Plot saved to: {dimensionality_plot_path}")
 

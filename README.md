@@ -1,8 +1,14 @@
 ## 📈 Data Analysis and Visualization (DAV) Project
 
-This project is an end-to-end Python solution for processing, cleaning, feature engineering, and analyzing a dataset, culminating in a series of data visualizations.
+This project is an end-to-end Python solution for processing, cleaning, feature engineering, and analyzing whatsapp text-data, culminating in a series of data visualizations. The author (Bas) has created a set of visualisations for the course 'Data Analysis & Visualisation'. These visualisations are ready for review in the img/final-folder. The interpretation of these graphs will be explained in the next section. After that you can find a clear overview of the project structure, a clear step-by-step on how to use this project, and an overview of the pipeline flow. Please note that the visualisations presented by the author in this project are based on the group chat with his friends. The visualisations in this project have the goal to show interesting trends in the chat data based on the various features to either the messages or the attributes to the authors in the group.
 
-Important Note: The png-files in img/final/.. are ready for review for the course 'Data Analysis & Visualisation'. 
+### Interpretation of the Final Images
+
+1.  **categories_plot.png**
+    This plot shows what percentage of each of the two groups (members of the friend group who live in the hometown where they have met and who do not live there anymore) ask the questions to meet up per year. A hypothesis could be that as friends move away from their hometown, taking initiative in meeting up will shift more to those who are still living in the hometown. This graphs shows that the opposite results for this friend group, as the majority of the questions with the intention of meeting up come from those who have moved away from the hometown.
+
+2.  **correlation_plot.png**
+
 
 ### 📁 Project File Structure
 
@@ -118,6 +124,3 @@ The workflow proceeds in the following order:
 The `main.py` script employs a simple file existence check (`.exists()`) before running any long-running task.
 
 > **Example:** If the Time Series plot (`img/final/time_series_plot.png`) already exists, the script will print a message and skip the `time_series_main` function, moving directly to the next analysis step. This ensures that only necessary tasks are re-executed.
-
-## Interpretation of the Final Images
-

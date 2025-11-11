@@ -1,8 +1,4 @@
-# dimensionality_reduction.py
-
 # import packages
-import sys
-import tomllib
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -11,59 +7,48 @@ from loguru import logger
 # Import the specific SVD implementation from scikit-learn
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import StandardScaler
-import os
-
-# Assuming correct path for settings is now:
-from data_handling.settings import Folders, CleanConfig 
-
-# --- LOGGING SETUP (Copied from time_series.py) ---
-logger.remove()
-logger.add("logs/logfile.log", rotation="1 week", level="DEBUG")
-logger.add(sys.stderr, level="INFO")
-
 
 class SVDAnalyzer:
     """
     A class to perform Single Value Decomposition (SVD) on the 
     feature-engineered DataFrame for dimensionality reduction and factor interpretation.
     """
-    def __init__(self, config: CleanConfig, output_filename: str):
+    def __init__(self, input_path: Path, output_path: Path, config: dict):
         """
-        Initializes the analyzer, using config for folder paths.
-        
-        :param config: The loaded application configuration object.
-        :param output_filename: The base name for the output files (plot and reduced data).
+        :param input_path: Path to the feature-engineered CSV/Parquet file.
+        :param output_path: Base Path for output. The plot is saved as a PNG, 
+                            and the factor data is saved as a Parquet file.
+        :param config: The loaded configuration dictionary.
         """
-        self.folders = config.folders
-        self.output_filename = output_filename
+        self.input_path = input_path
+        self.output_path = output_path
+        self.config = config
         self.df = None
         self.A = None
         self.feature_cols = None
-        # self.output_path will be the base path (img/final/output_filename) constructed in run()
-
-    def _load_data(self, input_path: Path, config_dict: dict):
+        
+        # Ensure the output directory exists
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+    def _load_data(self):
         """
         Loads the feature-engineered data from the specified path and standardizes features.
-        
-        :param input_path: Path to the selected feature-engineered data file.
-        :param config_dict: The raw dictionary containing application settings (like svd_exclude_cols).
         """
-        logger.info(f"Loading data for SVD analysis from: {input_path.name}")
+        logger.info(f"Loading data for SVD analysis from: {self.input_path.name}")
         try:
             # Attempt to load Parquet first, then fallback to CSV
-            parquet_path = input_path.with_suffix(".parq")
+            parquet_path = self.input_path.with_suffix(".parq")
             if parquet_path.exists():
                 self.df = pd.read_parquet(parquet_path)
             else:
-                self.df = pd.read_csv(input_path) 
+                self.df = pd.read_csv(self.input_path) 
                 
         except Exception as e:
-            logger.error(f"Failed to load data from {input_path}: {e}")
+            logger.error(f"Failed to load data from {self.input_path}: {e}")
             raise
             
         # 1. Identify numerical columns for SVD
-        # NOTE: Using config_dict here to access the specific SVD settings
-        exclude_cols = config_dict.get('svd_exclude_cols', ['author_id', 'message_id', 'timestamp'])
+        exclude_cols = self.config.get('svd_exclude_cols', ['author_id', 'message_id', 'timestamp'])
         numerical_cols = self.df.select_dtypes(include=np.number).columns
         self.feature_cols = [col for col in numerical_cols if col not in exclude_cols]
 
@@ -76,7 +61,7 @@ class SVDAnalyzer:
         # 2. Scale the data
         logger.info("Standardizing feature matrix...")
         scaler = StandardScaler()
-        # Use a copy of the original feature matrix for safe scaling and handle potential NaNs
+        # Use a copy of the original feature matrix for safe scaling
         self.A = scaler.fit_transform(self.df[self.feature_cols].fillna(0)) 
         
     def _run_svd(self, n_components: int = None):
@@ -102,7 +87,6 @@ class SVDAnalyzer:
         """
         explained_variance_cumsum = np.cumsum(svd_model.explained_variance_ratio_)
         num_components = len(explained_variance_cumsum)
-        # Construct the specific output path for the plot
         plot_path = self.output_path.with_suffix(".png")
 
         # Find the number of components needed to explain 90% of the variance
@@ -143,12 +127,12 @@ class SVDAnalyzer:
         Performs the final SVD reduction with a fixed k and creates the 
         factor interpretation matrix (V_T) and the reduced data matrix (U * Sigma).
         
-        :param k: The number of components to keep.
-        :return: The final DataFrame with factor scores appended.
+        :param k: The number of components to keep (based on plot analysis).
+        :return: The full DataFrame with factor scores appended.
         """
         logger.info(f"--- Finalizing SVD Reduction with selected k={k} ---")
         
-        # 1. Rerun SVD with the selected k
+        # 1. Rerun SVD with the selected k=15
         svd_model = self._run_svd(n_components=k)
         
         # A_reduced: U * Sigma (the row scores for the new latent factors)
@@ -162,7 +146,7 @@ class SVDAnalyzer:
         
         # V_T: Features as rows, Factors as columns (easier to read)
         factor_loadings_df = pd.DataFrame(
-            Vt.T, 
+            Vt.T, # Transpose Vt to get V, then transpose again for the desired layout (Features x Factors)
             index=self.feature_cols,
             columns=factor_names
         )
@@ -173,11 +157,11 @@ class SVDAnalyzer:
         logger.info(f"Factor Loadings (V_T) saved to: {interpret_path.name}")
 
         # 3. Create the Reduced Data DataFrame (U * Sigma)
+        # Append the factor scores (A_reduced) to the original DataFrame
         factor_scores_df = pd.DataFrame(A_reduced, columns=factor_names, index=self.df.index)
         
-        # Use only the non-feature columns (metadata)
-        metadata_cols = [col for col in self.df.columns if col not in self.feature_cols]
-        df_reduced = self.df[metadata_cols].copy()
+        # Remove the original high-dimensional features (optional, but good practice)
+        df_reduced = self.df.drop(columns=self.feature_cols, errors='ignore').copy()
         
         # Concatenate the original metadata with the new factor scores
         df_reduced = pd.concat([df_reduced, factor_scores_df], axis=1)
@@ -189,98 +173,53 @@ class SVDAnalyzer:
 
         return df_reduced
         
-    def run(self, raw_config_dict: dict) -> Path:
+    def run(self) -> Path:
         """
-        Runs the full SVD analysis pipeline.
+        Runs the full SVD analysis pipeline: loads data, generates plot to select k, 
+        and performs final reduction and interpretation.
         
-        :param raw_config_dict: The raw TOML configuration dictionary.
         :return: Path to the final saved plot image.
         """
-        # --- File Discovery (Input) ---
-        input_files = list(self.folders.feature_added.glob("*-features.csv"))
-        
-        if not input_files:
-            logger.error(f"No *-features.csv files found in {self.folders.feature_added}. Aborting.")
-            raise FileNotFoundError(f"No feature-engineered CSV files found in {self.folders.feature_added}")
-            
-        input_path = max(input_files, key=os.path.getmtime)
-        
-        # --- Output Path Construction ---
-        # The base path for all outputs (plot, loadings, reduced data)
-        plot_output_dir = Path("img/final").resolve()
-        plot_output_dir.mkdir(parents=True, exist_ok=True)
-        self.output_path = plot_output_dir / self.output_filename
-
-        logger.info(f"Selected latest file for SVD: {input_path.name}")
-        
-        # 1. Load Data and Standardize
-        self._load_data(input_path, raw_config_dict)
+        self._load_data()
         
         if self.A is None:
+            logger.error("Feature matrix A was not created. Aborting SVD analysis.")
             return self.output_path
 
         logger.info("Starting SVD analysis and visualization...")
         
-        # 2. Perform initial SVD for variance analysis
+        # 1. Perform initial SVD for variance analysis
+        # Find the max number of components
         n_comp_full = min(self.A.shape) - 1
         svd_full = self._run_svd(n_components=n_comp_full)
         
-        # 3. Generate the plot and save the figure
+        # 2. Generate the plot and save the figure
         plot_path = self._generate_plot(svd_full)
         
-        # 4. Determine k (90% threshold)
+        # 3. Determine k based on the plot (90% threshold)
         explained_variance_cumsum = np.cumsum(svd_full.explained_variance_ratio_)
         k_optimal = np.argmax(explained_variance_cumsum >= 0.90) + 1
         
-        # 5. Perform final reduction and save the results
+        # 4. Perform final reduction and save the results
         self._perform_reduction_and_interpret(k=k_optimal)
         
         logger.info("SVD analysis complete: Plot generated and data/loadings saved.")
         return plot_path
 
+# Public function to be used in main.py
 
-# --- Configuration Loading and Public Function (NO CHANGE) ---
-def _load_config_and_raw() -> tuple[CleanConfig, dict]:
-    """Loads configuration from config.toml and returns CleanConfig object and the raw dict."""
-    with open("config.toml", "rb") as f:
-        config = tomllib.load(f)
-
-    raw = Path(config["raw"])
-    preprocessed = Path(config["preprocessed"])
-    cleaned = Path(config["cleaned"])
-    feature_added = Path(config["feature_added"])
-    datafile = Path(config["input"])
-
-    folders = Folders(
-        raw=raw,
-        preprocessed=preprocessed,
-        cleaned=cleaned,
-        feature_added=feature_added,
-        datafile=datafile,
-    )
-    
-    clean_config = CleanConfig(folders=folders)
-    return clean_config, config # Return both the object and the dictionary
-
-def run_svd_analysis(output_filename: str) -> Path:
+def run_svd_analysis(input_path: Path, output_path: Path, config: dict) -> Path:
     """
     Main entry point for the SVD analysis and visualization process.
     
-    This function loads the configuration, instantiates the SVDAnalyzer, 
-    and runs the full pipeline.
-    
-    :param output_filename: The base name of the output files to save.
+    :param input_path: Path to the feature-engineered CSV.
+    :param output_path: Base path for output files (plot and data).
+    :param config: The loaded application configuration.
     :return: Path to the final plot image file.
     """
-    try:
-        config_obj, raw_config_dict = _load_config_and_raw()
-    except Exception as e:
-        logger.error(f"Failed to load configuration: {e}")
-        raise RuntimeError("Failed to load plotting configuration.")
-        
     analyzer = SVDAnalyzer(
-        config=config_obj,
-        output_filename=output_filename
+        input_path=input_path,
+        output_path=output_path,
+        config=config
     )
-    # Pass the raw config dictionary to run() so it can access 'svd_exclude_cols'
-    return analyzer.run(raw_config_dict)
+    return analyzer.run()
