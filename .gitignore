@@ -3,5 +3,5 @@
 .python-*
 uv_lock
 logfile*
-vs_code
+*.json
 __pycache__/
