@@ -12,7 +12,7 @@ import click
 import pandas as pd
 from loguru import logger
 
-from settings import (BaseRegexes, Folders, PreprocessConfig,
+from dav_bas_hv.data_handling.settings import (BaseRegexes, Folders, PreprocessConfig,
                                   androidRegexes, csvRegexes, iosRegexes,
                                   oldRegexes)
 
