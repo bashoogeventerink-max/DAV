@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Give option to say variable can be None:
-from typing import Optional
+from typing import Optional, Dict
 
 # Define a class 
 from pydantic import BaseModel
@@ -50,7 +50,9 @@ csvRegexes = BaseRegexes(
 @dataclass
 class Folders:
     raw: Path
-    processed: Path
+    preprocessed: Path
+    cleaned: Path
+    feature_added: Path
     datafile: Path
 
 # Preprocess settings to format date, drop authors, apply regex
@@ -59,3 +61,12 @@ class PreprocessConfig(BaseModel):
     regexes: BaseRegexes
     datetime_format: str
     drop_authors: list[str] = []
+
+# Clean settings 
+class CleanConfig(BaseModel):
+    folders: Folders
+    # Add any other config settings specific to cleaning if needed
+    city_authors: list[str] = []
+    tech_background_authors: list[str] = []
+    partner_authors: list[str] = []
+    partner_dates: Dict[str, str] = {} # Key is author name, value is date string (e.g., "2024-12-01")

@@ -1,6 +1,6 @@
 ### Preprocess txt-file exported from WhatsApp into a CSV file with columns: timestamp, author, message 
-### User should specify device type to select appropriate regexes
-### Saves the CSV file to the processed folder
+### Reads which type of device the WhatsApp data was exported from (iOS, Android, old version, or CSV)
+### Saves the CSV file to the preprocess folder
 
 import re
 import sys
@@ -12,7 +12,7 @@ import click
 import pandas as pd
 from loguru import logger
 
-from dav_bas_hv.data_handling.settings import (BaseRegexes, Folders, PreprocessConfig,
+from .settings import (BaseRegexes, Folders, PreprocessConfig,
                                   androidRegexes, csvRegexes, iosRegexes,
                                   oldRegexes)
 
@@ -38,7 +38,7 @@ class WhatsappPreprocessor:
     def save(self, records: list[tuple]) -> Path:
         df = pd.DataFrame(records, columns=["timestamp", "author", "message"])
         now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        outfile = self.folders.processed / f"whatsapp-{now}-preprocess.csv"
+        outfile = self.folders.preprocessed / f"whatsapp-{now}-preprocess.csv"
         logger.info(f"Writing to {outfile}")
         df.to_csv(outfile, index=False)
         logger.success("Done!")
@@ -105,7 +105,7 @@ def main(device: str):
     with open("config.toml", "rb") as f:
         config = tomllib.load(f) # Loading configuration from TOML file
         raw = Path(config["raw"])
-        processed = Path(config["processed"])
+        preprocessed = Path(config["preprocessed"])
         datafile = Path(config["input"])
         datetime_format = config["datetime_format"]
         drop_authors = config["drop_authors"]
@@ -131,7 +131,7 @@ def main(device: str):
 
     folders = Folders(
         raw=raw,
-        processed=processed,
+        preprocessed=preprocessed,
         datafile=datafile,
     )
     preprocessconfig = PreprocessConfig(

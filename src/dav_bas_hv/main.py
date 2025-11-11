@@ -3,16 +3,16 @@ import tomllib
 from pathlib import Path
 
 # Importing necessary functions from other modules
-from dav_bas_hv.data_handling.preprocess import main as preprocess_main 
-from dav_bas_hv.data_handling.clean_data import run_data_cleaning as clean_data_main
-from dav_bas_hv.data_handling.add_features import run_feature_engineering as feature_engineering_main
+from data_handling.preprocess import main as preprocess_main 
+from data_handling.clean_data import main as clean_data_main
+from data_handling.add_features import run_feature_engineering as feature_engineering_main
 
 # Importing analysis functions
-from dav_bas_hv.graphs.time_series import run_dual_axis_analysis as time_series_main
-from dav_bas_hv.graphs.categories_graph import run_categories_analysis as categories_analysis_main
-from dav_bas_hv.graphs.distribution_graph import run_distribution_analysis as distribution_analysis_main
-from dav_bas_hv.graphs.correlation_graph import run_correlation_analysis as correlation_analysis_main
-from dav_bas_hv.graphs.dimensionality_graph import run_svd_analysis as svd_analysis_main
+from graphs.time_series import run_dual_axis_analysis as time_series_main
+from graphs.categories_graph import run_categories_analysis as categories_analysis_main
+from graphs.distribution_graph import run_distribution_analysis as distribution_analysis_main
+from graphs.correlation_graph import run_correlation_analysis as correlation_analysis_main
+from graphs.dimensionality_graph import run_svd_analysis as svd_analysis_main
 
 # Load toml configuration
 def load_config(config_path="config.toml"):

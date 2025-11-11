@@ -1,51 +1,41 @@
 # import packages
 import json
 import re
-import sys
-import tomllib
 from pathlib import Path
 import pandas as pd
 import numpy as np 
 from datetime import datetime
 from loguru import logger
 import pytz
-import click
-import os
 
-# Import from settings
-from .settings import Folders, CleanConfig # CleanConfig will be defined below
 from wa_analyzer.humanhasher import humanize 
 
-# Configure Loguru (copied from preprocess.py)
-logger.remove()
-logger.add("logs/logfile.log", rotation="1 week", level="DEBUG")
-logger.add(sys.stderr, level="INFO")
-
-# --- DataCleaner Class ---
 class DataCleaner:
     """
     A class to handle core data cleaning and feature engineering steps on a DataFrame.
     """
-    def __init__(self, config: CleanConfig): 
+    def __init__(self, input_path: Path, output_path: Path, config: dict):
         """
-        :param config: The loaded configuration object including Folders.
+        :param input_path: Path to the preprocessed (uncleaned) CSV file.
+        :param output_path: Path where the final cleaned CSV/Parquet will be saved.
+        :param config: The loaded configuration dictionary.
         """
-        self.folders = config.folders # Use Folders object
+        self.input_path = input_path
+        self.output_path = output_path
+        self.config = config
         self.df = None
         
-        # Ensure the directory for the cleaned folder exists (from self.folders)
-        self.folders.cleaned.mkdir(parents=True, exist_ok=True)
-        # We assume the parent of the cleaned folder is the correct place for the
-        # anonymization reference file.
-        self.folders.cleaned.parent.mkdir(parents=True, exist_ok=True) 
-
-    # --- Feature Engineering Methods (Unchanged for brevity) ---
-    
+        # Ensure the directory for the anon reference file exists
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        
     def _clean_author_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """Cleans author names by removing leading tilde characters."""
         clean_tilde = r"^~\u202f"
         df.loc[:, "author"] = df["author"].apply(lambda x: re.sub(clean_tilde, "", x))
         return df
+
+    # The following two columns are added based on the name of the author in a unique dataset of the maker of the project. 
+    # These features are not generalizable to other datasets.
     
     def _add_living_in_city(self, df: pd.DataFrame) -> pd.DataFrame:
         """Adds a binary column indicating if the author is living in a city."""
@@ -106,15 +96,14 @@ class DataCleaner:
 
         df.loc[:, "date_living_with_partner"] = df["author"].apply(get_date)
         return df
-    
+
     def _anonymize_authors(self, df: pd.DataFrame) -> pd.DataFrame:
         """Anonymizes author names and saves a reference file."""
         logger.info("    -> Anonymizing authors.")
         authors = df.author.unique()
         anon = {k: humanize(k) for k in authors}
         
-        # **CHANGE 2: Use self.folders.cleaned.parent for the reference file**
-        reference_file = self.folders.cleaned.parent / "anon_reference.json"
+        reference_file = self.output_path.parent / "anon_reference.json"
         
         with open(reference_file, "w") as f:
             # Create reference mapping: Anonymized Name -> Original Name
@@ -142,10 +131,11 @@ class DataCleaner:
         # Generate the timestamp
         now = datetime.now().strftime("%Y%m%d-%H%M%S")
         
-        # **CHANGE 3: Use self.folders.cleaned as the output directory**
-        # This is analogous to preprocess.py using self.folders.preprocessed
-        outfile_csv = self.folders.cleaned / f"{filename_base}-{now}-cleaned.csv"
-        outfile_parquet = self.folders.cleaned / f"{filename_base}-{now}-cleaned.parq"
+        # Construct the output file paths using the current output_path directory
+        # We replace the stem of the original output_path with our new timestamped name
+        # and keep the directory.
+        outfile_csv = self.output_path.parent / f"{filename_base}-{now}.csv"
+        outfile_parquet = self.output_path.parent / f"{filename_base}-{now}.parq"
         
         logger.info(f"Writing CSV to {outfile_csv}")
         df.to_csv(outfile_csv, index=False)
@@ -155,6 +145,7 @@ class DataCleaner:
         
         logger.success("Saving complete.")
         
+        # The function must return a Path object, which is the CSV file path
         return outfile_csv
 
     def run(self) -> Path:
@@ -164,21 +155,13 @@ class DataCleaner:
         
         :return: Path to the final cleaned CSV file.
         """
-        input_files = list(self.folders.preprocessed.glob("*-preprocess.csv"))
-        
-        if not input_files:
-            logger.error(f"No *-preprocess.csv files found in {self.folders.preprocessed}. Exiting.")
-            raise FileNotFoundError(f"No preprocessed CSV files found in {self.folders.preprocessed}")
-            
-        # Find the file with the most recent modification time (mtime)
-        input_file = max(input_files, key=os.path.getmtime)
-        logger.info(f"Selected latest file for cleaning: {input_file.name}")
+        logger.info(f"Loading data from: {self.input_path.name}")
         
         try:
             # Load data, assuming timestamp is already a clean datetime column
-            self.df = pd.read_csv(input_file, parse_dates=["timestamp"])
+            self.df = pd.read_csv(self.input_path, parse_dates=["timestamp"])
         except Exception as e:
-            logger.error(f"Failed to load data from {input_file}: {e}")
+            logger.error(f"Failed to load data from {self.input_path}: {e}")
             raise
         
         # Drop the first row and reset index as per original logic
@@ -201,55 +184,21 @@ class DataCleaner:
         logger.info("Cleaning steps complete.")
         
         # Save the cleaned data using the new helper method
-        return self._save_dataframe(self.df, filename_base="whatsapp")
+        return self._save_dataframe(self.df, filename_base="whatsapp-cleaned")
 
-# --- Main Execution Block (New) ---
-
-# Helper function to load config (similar to preprocess.py's main)
-def _load_config() -> CleanConfig:
-    """Loads configuration from config.toml and returns a CleanConfig object."""
-    with open("config.toml", "rb") as f:
-        config = tomllib.load(f)
-
-    # Use the 'cleaned' folder path from the config for saving
-    raw = Path(config["raw"])
-    preprocessed = Path(config["preprocessed"])
-    cleaned = Path(config["cleaned"]) # Assuming 'cleaned' is in config.toml
-    datafile = Path(config["input"])
-
-    # Create the Folders object
-    folders = Folders(
-        raw=raw,
-        preprocessed=preprocessed,
-        cleaned=cleaned, # Now included
-        feature_added=Path("."), # Placeholder since it's not used here, but needed by Folders dataclass
-        datafile=datafile,
-    )
+# Public function to be used in main.py
+def run_data_cleaning(input_path: Path, output_path: Path, config: dict) -> Path:
+    """
+    Main entry point for the data cleaning process.
     
-    # Create the CleanConfig object
-    clean_config = CleanConfig(
-        folders=folders,
-        # No other specific config items needed for DataCleaner's init currently
+    :param input_path: Path to the uncleaned CSV (output of preprocessing).
+    :param output_path: Path to save the final cleaned CSV/Parquet.
+    :param config: The loaded application configuration.
+    :return: Path to the final cleaned CSV file.
+    """
+    cleaner = DataCleaner(
+        input_path=input_path,
+        output_path=output_path,
+        config=config
     )
-    return clean_config
-
-
-@click.command()
-def main():
-    """Main entry point for the data cleaning process."""
-    # We don't need the 'device' option here, as the input is already a CSV.
-    try:
-        config = _load_config()
-    except Exception as e:
-        logger.error(f"Failed to load configuration: {e}")
-        sys.exit(1)
-
-    logger.info(f"Input path assumed from preprocessed folder: {config.folders.preprocessed}")
-    
-    # Run the cleaner
-    cleaner = DataCleaner(config=config)
-    cleaner.run()
-
-
-if __name__ == "__main__":
-    main()
+    return cleaner.run()
