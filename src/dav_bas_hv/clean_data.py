@@ -68,10 +68,33 @@ class DataCleaner:
         partner_authors = [
             "Bas hooge Venterink", 
             "Thies Jan Weijmans",
-            "Smeerbeer van Dijk"
+            "Smeerbeer van Dijk",
+            "Thomas Grundel",
+            "Jop van der Woning"
         ]
 
         df.loc[:, "living_with_partner"] = np.where(df["author"].isin(partner_authors), 1, 0)
+        return df
+    
+    def _date_living_with_partner(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a datetime column indicating since when the author is living with a partner."""
+        logger.info("    -> Adding 'date_living_with_partner' feature.")
+        partner_dates = {
+            "Bas hooge Venterink": "2024-12-01",
+            "Thies Jan Weijmans": "2024-09-01",
+            "Smeerbeer van Dijk": "2023-06-01",
+            "Thomas Grundel": "2024-11-01",
+            "Jop van der Woning": "2025-03-10"
+        }
+
+        def get_date(author):
+            date_str = partner_dates.get(author, None)
+            if date_str:
+                return pd.to_datetime(date_str).tz_localize(pytz.UTC)
+            else:
+                return pd.NaT
+
+        df.loc[:, "date_living_with_partner"] = df["author"].apply(get_date)
         return df
 
     def _anonymize_authors(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -123,6 +146,8 @@ class DataCleaner:
         
         # 2. Add features that depend on original author names
         self.df = self._add_living_in_city(self.df)
+        self.df = self._living_with_partner(self.df)
+        self.df = self._date_living_with_partner(self.df)
         self.df = self._technical_background(self.df)
         
         # 3. Anonymize authors (Last author-dependent step)

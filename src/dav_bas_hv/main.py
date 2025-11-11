@@ -32,15 +32,14 @@ def main():
         return
     
     # ---- Set paths with Pathlib ----
-    directories_config = config["directories"]
-    preprocessed_filename = directories_config["preprocess_csv"]
-    cleaned_filename = directories_config["cleaned_csv"]
-    feature_engineered_filename = directories_config["feature_engineered_csv"]
-    time_series_plot_filename = directories_config["time_series_plot_png"]
-    categories_plot_filename = directories_config["categories_plot_png"]
-    distribution_plot_filename = directories_config["distribution_plot_png"]
-    correlation_plot_filename = directories_config["correlation_plot_png"]
-    dimensionality_plot_filename = directories_config["dimensionality_plot_png"]
+    preprocessed_filename = config["preprocess_csv"]
+    cleaned_filename = config["cleaned_csv"]
+    feature_engineered_filename = config["feature_engineered_csv"]
+    time_series_plot_filename = config["time_series_plot_png"]
+    categories_plot_filename = config["categories_plot_png"]
+    distribution_plot_filename = config["distribution_plot_png"]
+    correlation_plot_filename = config["correlation_plot_png"]
+    dimensionality_plot_filename = config["dimensionality_plot_png"]
 
 
     # ---- Folder paths with Pathlib ----
