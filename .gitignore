@@ -1,6 +1,5 @@
 *.csv
 *.parq
-*.txt
 .python-*
 uv_lock
 logfile*
