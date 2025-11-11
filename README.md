@@ -5,10 +5,24 @@ This project is an end-to-end Python solution for processing, cleaning, feature 
 ### Interpretation of the Final Images
 
 1.  **categories_plot.png**
+
     This plot shows what percentage of each of the two groups (members of the friend group who live in the hometown where they have met and who do not live there anymore) ask the questions to meet up per year. A hypothesis could be that as friends move away from their hometown, taking initiative in meeting up will shift more to those who are still living in the hometown. This graphs shows that the opposite results for this friend group, as the majority of the questions with the intention of meeting up come from those who have moved away from the hometown.
 
 2.  **correlation_plot.png**
 
+    Within the friend group of the author, there is a nice even distribution of members who have performed a form of a technical study (4 out of 9 members). Based on this feature of the author of the messages, the correlation_plot.png shows that members with a technical background use an Emoji less often in their text messages (±9.7%) compared to their counterpart (±15.7%). Although the low p-value support the confidence in the title of the graph, the magnitude of the correlation between technical background and the use of emoji is very small (-0.09). 
+
+3. **dimensionality_graph.png**
+
+    This assignment has been a bit difficult to understand and the author did not succeed in presenting an easy to interpet dimensionality reduction of the data. This graph however shows that, if the objective is to reduce the dimensionality of the data while retaining 90% of its original information, the recommended number of latent factors to choose is 16. 
+
+4.  **distribution_plot.png**
+    
+    This graph aims to display response times between two groups within the friend group of the author. The group is divided in authors who have and have not been living in the hometown for the entirety of the time-period of this dataset. An hypothesis might be that people who live in the hometown might have the tendency to respond quicker to messages within the group chat, however this graph shows the opposite story. When looking at the probability density of the log response times in minutes and make a plot for each of the two groups, then we see the probability density of the group living away from hometown is higher skewed towards to 0 log minutes compared to its counterpart. 
+
+5.  **time_series_plot.png**
+
+    This graph displays the trend in the number of messages and the average size of the messages per year-month. Besides there are events displayed with the dashed, vertical red lines which showcases that in the number of members moving in their partner has increased drastically since the end of 2024. Alongside with these events, the number of texts per month drastically decreases as more members of the group are moving in with their partner. This indicates that, as more people are moving in with their partner, the social activity within the group chat decreases. 
 
 ### 📁 Project File Structure
 
@@ -85,11 +99,9 @@ The project uses `uv` for dependency management.
 
 #### 3. Run the Project
 
-Once the environment is set up, you can execute the main script:
+Once the environment is set up, you can execute the main script by clicking on src -> dav_bas_hv -> main.py and click on the 'Run Python-file'-button in the upright corner. This wil execute the path
 
-```bash
-uv run python main.py
-```
+Once main.py is finished, you can view the files in data -> cleaned, feature_added, preprocessed etc to see the result of the script. The graphs for the txt-file of the author is already stored in the destination directory (img -> final), so the main-script will not execute. Once you remove the images from this folder or adjust the name in config.toml for these png's, the main.py will also execute the functions to generate the graphs. 
 
 ## 📦 Project Workflow
 

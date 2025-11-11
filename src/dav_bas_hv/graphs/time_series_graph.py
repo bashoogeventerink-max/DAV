@@ -52,7 +52,7 @@ class DualAxisTrendsAnalyzer:
         # Combine the two series into one DataFrame
         trends_df = pd.concat([monthly_message_count, monthly_avg_word_count], axis=1).dropna(how='all')
 
-        # 3. Calculate Trend Lines (6-month Rolling Mean - kept 6 for smoother trend)
+        # 3. Calculate Trend Lines (3-month Rolling Mean - kept 6 for smoother trend)
         window = 3
         trends_df['volume_trend'] = trends_df['message_count'].rolling(
             window=window, center=True
@@ -82,12 +82,12 @@ class DualAxisTrendsAnalyzer:
 
         # --- Left Y-Axis (Message Volume) ---
         ax1.set_xlabel('Date (Monthly)')
-        ax1.set_ylabel('Monthly Message Volume (6-Month Trend)', color=color_volume)
+        ax1.set_ylabel('Monthly Message Volume (3-Month Trend)', color=color_volume)
 
         # CHANGE 1: Plot ONLY the trend line (now solid)
         ax1.plot(
             trends_df.index, trends_df['volume_trend'], color=color_volume, 
-            linewidth=2.5, linestyle='-', label='Volume Trend'
+            linewidth=2.5, linestyle='-', label='Volume Trend 3-Month Rol. Mean.'
         )
 
         ax1.tick_params(axis='y', labelcolor=color_volume)
@@ -97,12 +97,12 @@ class DualAxisTrendsAnalyzer:
         # --- Right Y-Axis (Average Word Count) ---
         ax2 = ax1.twinx()
 
-        ax2.set_ylabel('Monthly Average Word Count (6-Month Trend)', color=color_words)
+        ax2.set_ylabel('Monthly Average Word Count (3-Month Trend)', color=color_words)
 
         # CHANGE 1: Plot ONLY the trend line (now solid)
         ax2.plot(
             trends_df.index, trends_df['word_count_trend'], color=color_words, 
-            linewidth=2.5, linestyle='-', label='Avg. Word Count Trend'
+            linewidth=2.5, linestyle='-', label='Avg. Word Count 3-Month Rol. Mean.'
         )
 
         ax2.tick_params(axis='y', labelcolor=color_words)
@@ -112,6 +112,8 @@ class DualAxisTrendsAnalyzer:
         # --- NEW CHANGE 3: Add Vertical Lines for Partnership Dates ---
         # Get unique, non-NaT dates for partnership
         unique_dates = partnership_dates.dropna().unique()
+
+        event_label = 'Moving Partner Event'
         
         if len(unique_dates) > 0:
             logger.info(f"    -> Adding {len(unique_dates)} vertical lines for partnership start dates.")
