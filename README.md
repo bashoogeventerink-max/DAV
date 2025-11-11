@@ -2,6 +2,9 @@
 
 This project is an end-to-end Python solution for processing, cleaning, feature engineering, and analyzing whatsapp text-data, culminating in a series of data visualizations. The author (Bas) has created a set of visualisations for the course 'Data Analysis & Visualisation'. These visualisations are ready for review in the img/final-folder. The interpretation of these graphs will be explained in the next section. After that you can find a clear overview of the project structure, a clear step-by-step on how to use this project, and an overview of the pipeline flow. Please note that the visualisations presented by the author in this project are based on the group chat with his friends. The visualisations in this project have the goal to show interesting trends in the chat data based on the various features to either the messages or the attributes to the authors in the group.
 
+Author: Bas hooge Venterink
+Student number: 1905776
+
 ### Interpretation of the Final Images
 
 1.  **categories_plot.png**
