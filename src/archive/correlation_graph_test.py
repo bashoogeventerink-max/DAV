@@ -1,8 +1,4 @@
-# correlation_graph.py
-
 # import packages
-import sys
-import tomllib
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -11,16 +7,6 @@ import seaborn as sns
 from loguru import logger
 from scipy import stats
 from matplotlib.ticker import FixedLocator
-import os
-
-# Assuming correct path for settings is now:
-from data_handling.settings import Folders, CleanConfig 
-
-# --- LOGGING SETUP (Copied from time_series.py) ---
-logger.remove()
-logger.add("logs/logfile.log", rotation="1 week", level="DEBUG")
-logger.add(sys.stderr, level="INFO")
-
 
 class CorrelationAnalyzer:
     """
@@ -31,17 +17,19 @@ class CorrelationAnalyzer:
     and 'has_emoji'.
     """
     
-    def __init__(self, config: CleanConfig, output_filename: str):
+    def __init__(self, input_path: Path, output_path: Path, config: dict):
         """
-        Initializes the analyzer, using config for folder paths.
-        
-        :param config: The loaded application configuration object.
-        :param output_filename: The name of the final plot image file.
+        :param input_path: Path to the feature-engineered CSV/Parquet file.
+        :param output_path: Path where the generated plot image (.png) will be saved.
+        :param config: The loaded configuration dictionary.
         """
-        self.folders = config.folders
-        self.output_filename = output_filename
+        self.input_path = input_path
+        self.output_path = output_path
+        self.config = config
         self.df = None
-        # self.output_path will be constructed in the run method
+        
+        # Ensure the output directory exists
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
         
     def _perform_analysis(self, df: pd.DataFrame) -> tuple[float, float, float]:
         """
@@ -53,6 +41,7 @@ class CorrelationAnalyzer:
         logger.info("    -> Calculating Point-Biserial Correlation and T-test.")
         
         # Calculate the Point-Biserial Correlation Coefficient
+        # This is equivalent to Pearson's correlation when one variable is dichotomous
         correlation_coefficient, _ = stats.pearsonr(df['tech_background'], df['has_emoji'])
         
         # T-test for difference in means (proportions) between the two groups
@@ -81,20 +70,18 @@ class CorrelationAnalyzer:
         )
 
         # --- Calculate Group Sizes (N) ---
-        # Ensure consistent order for N-labels:
-        categories = ['No Technical Background', 'Technical Background']
-        group_counts = df['tech_label'].value_counts().reindex(categories, fill_value=0).to_dict()
+        group_counts = df['tech_label'].value_counts().to_dict()
         
         # Create the figure and axes
         fig, ax = plt.subplots(figsize=(8, 6))
 
-        # Use seaborn for a bar plot
+        # Use seaborn for a bar plot. The default estimator 'mean' will correctly 
+        # represent the proportion of 'has_emoji' (since it is 0 or 1).
         sns.barplot(
             x='tech_label', 
             y='has_emoji', 
             data=df,
             hue='tech_label',
-            order=categories, # Ensure order matches the N-labels
             legend=False,
             palette=['#ff7f0e', '#808080'],
             errcolor='gray', 
@@ -104,18 +91,26 @@ class CorrelationAnalyzer:
         )
 
 
-        # --- Add N-labels above the bars ---
-        for bar, category_label in zip(ax.patches, categories):
+        # --- NEW: Add N-labels above the bars ---
+        for i, bar in enumerate(ax.patches):
+            # Get the bar's x-label (e.g., 'No Technical Background')
+            # The order of the bars matches the order in value_counts() if not sorted 
+            # by default, but iterating through the categories is safer.
+            category_label = df['tech_label'].unique()[i]
+            
+            # Get the count for this label
             N_count = group_counts.get(category_label, 0)
             N_text = f"N={N_count}"
 
             # Add the text label slightly above the bar/error bar
+            # bar.get_height() is the mean (proportion) of 'has_emoji'
+            # We use an offset of 0.01 for visual spacing
             ax.text(
                 bar.get_x() + bar.get_width() / 2, # Center the text horizontally
                 bar.get_height() + 0.01,           # Position text slightly above the bar
                 N_text,
-                ha='center',                       
-                va='bottom',                       
+                ha='center',                       # Horizontal alignment: center
+                va='bottom',                       # Vertical alignment: bottom
                 fontsize=10,
                 color='black'
             )
@@ -124,7 +119,8 @@ class CorrelationAnalyzer:
         corr_text = f"Correlation (r): {correlation_coefficient:.2f}"
         p_text = f"P-value (t-test): {p_value:.3f}"
 
-        x_pos = 0.75
+        # Determine text position (relative to the plot axes)
+        x_pos = 0.05
         y_pos = 0.95
         text_y_offset = 0.05
 
@@ -146,6 +142,7 @@ class CorrelationAnalyzer:
         ax.set_ylabel('% of Messages with Emoji', fontsize=12)
 
         # Format Y-axis as percentage
+        # Use fig.canvas.draw() to ensure ticks are calculated before formatting
         fig.canvas.draw()
         tick_locs = ax.get_yticks()
         ax.yaxis.set_major_locator(FixedLocator(tick_locs))
@@ -156,44 +153,30 @@ class CorrelationAnalyzer:
         plt.xticks(fontsize=11)
         plt.yticks(fontsize=11)
         
+        # Ensures that titles/labels don't get cut off when saving
         plt.tight_layout(rect=[0, 0, 1, 0.95]) 
         
         return fig
 
     def run(self) -> Path:
         """
-        Runs the correlation analysis pipeline: loads latest data, performs preparation, 
+        Runs the correlation analysis pipeline: loads data, performs analysis, 
         generates plot, and saves the final image.
         
         :return: Path to the final saved plot image.
         """
-        # --- File Discovery (Input) ---
-        input_files = list(self.folders.feature_added.glob("*-features.csv"))
-        
-        if not input_files:
-            logger.error(f"No *-features.csv files found in {self.folders.feature_added}. Exiting.")
-            raise FileNotFoundError(f"No feature-engineered CSV files found in {self.folders.feature_added}")
-            
-        input_path = max(input_files, key=os.path.getmtime)
-        logger.info(f"Selected latest file for analysis: {input_path.name}")
-        
-        # --- Output Path Construction ---
-        plot_output_dir = Path("img/final").resolve()
-        plot_output_dir.mkdir(parents=True, exist_ok=True)
-        self.output_path = plot_output_dir / self.output_filename
-
-        logger.info(f"Loading data for correlation analysis from: {input_path.name}")
+        logger.info(f"Loading data for correlation analysis from: {self.input_path.name}")
         
         try:
             # Attempt to load Parquet first, then fallback to CSV
-            parquet_path = input_path.with_suffix(".parq")
+            parquet_path = self.input_path.with_suffix(".parq")
             if parquet_path.exists():
                 self.df = pd.read_parquet(parquet_path)
             else:
-                self.df = pd.read_csv(input_path)
+                self.df = pd.read_csv(self.input_path)
                 
         except Exception as e:
-            logger.error(f"Failed to load data from {input_path}: {e}")
+            logger.error(f"Failed to load data from {self.input_path}: {e}")
             raise
         
         # Check if the necessary columns are present
@@ -205,7 +188,7 @@ class CorrelationAnalyzer:
         logger.info("Starting correlation analysis and visualization...")
         
         # 1. Perform analysis
-        correlation_coefficient, _, p_value = self._perform_analysis(self.df.copy())
+        correlation_coefficient, _, p_value = self._perform_analysis(self.df)
         
         # 2. Generate the plot
         fig = self._generate_plot(self.df, correlation_coefficient, p_value)
@@ -215,51 +198,24 @@ class CorrelationAnalyzer:
         fig.savefig(self.output_path, dpi=300)
         
         logger.info("Correlation analysis complete.")
+        # Close the plot to free up memory
         plt.close(fig) 
         return self.output_path
 
+# --- Public function to be used in main.py ---
 
-# --- Configuration Loading and Public Function (Copied from time_series.py) ---
-def _load_config() -> CleanConfig:
-    """Loads configuration from config.toml and returns a CleanConfig object."""
-    with open("config.toml", "rb") as f:
-        config = tomllib.load(f)
-
-    raw = Path(config["raw"])
-    preprocessed = Path(config["preprocessed"])
-    cleaned = Path(config["cleaned"])
-    feature_added = Path(config["feature_added"])
-    datafile = Path(config["input"])
-
-    folders = Folders(
-        raw=raw,
-        preprocessed=preprocessed,
-        cleaned=cleaned,
-        feature_added=feature_added,
-        datafile=datafile,
-    )
-    
-    clean_config = CleanConfig(folders=folders)
-    return clean_config
-
-def run_correlation_analysis(output_filename: str) -> Path:
+def run_correlation_analysis(input_path: Path, output_path: Path, config: dict) -> Path:
     """
     Main entry point for the correlation analysis and visualization process.
     
-    This function loads the configuration, instantiates the CorrelationAnalyzer, 
-    and runs the full pipeline.
-    
-    :param output_filename: The name of the final plot image file to save.
+    :param input_path: Path to the feature-engineered CSV.
+    :param output_path: Path to save the final plot image (.png).
+    :param config: The loaded application configuration.
     :return: Path to the final plot image file.
     """
-    try:
-        config = _load_config()
-    except Exception as e:
-        logger.error(f"Failed to load configuration: {e}")
-        raise RuntimeError("Failed to load plotting configuration.")
-        
     analyzer = CorrelationAnalyzer(
-        config=config,
-        output_filename=output_filename
+        input_path=input_path,
+        output_path=output_path,
+        config=config
     )
     return analyzer.run()

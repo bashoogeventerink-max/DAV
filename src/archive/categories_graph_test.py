@@ -1,24 +1,12 @@
-# yearly_questions_graph.py (categories.py)
+# yearly_questions_graph.py
 
 # import packages
-import sys
-import tomllib
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from loguru import logger
-import os
 
-# Assuming correct path for settings is now:
-from data_handling.settings import Folders, CleanConfig
-
-# --- LOGGING SETUP (Copied from time_series.py) ---
-logger.remove()
-logger.add("logs/logfile.log", rotation="1 week", level="DEBUG")
-logger.add(sys.stderr, level="INFO")
-
-
-class CategoriesAnalyzer:
+class MeetingUpQuestionsAnalyzer:
     """
     A class to handle the analysis and visualization of 'meeting up' questions
     over time, stratified by whether the user is living in a city.
@@ -27,26 +15,27 @@ class CategoriesAnalyzer:
     non-city living users per year.
     """
     
-    # Renamed the class from MeetingUpQuestionsAnalyzer to CategoriesAnalyzer
-    # to be more generic, following the file name.
-    
-    def __init__(self, config: CleanConfig, output_filename: str):
+    def __init__(self, input_path: Path, output_path: Path, config: dict):
         """
-        Initializes the analyzer, using config for folder paths.
-        
-        :param config: The loaded application configuration object.
-        :param output_filename: The name of the final plot image file.
+        :param input_path: Path to the main feature-engineered data file (CSV/Parquet).
+        :param output_path: Path where the generated plot image (.png) will be saved.
+        :param config: The loaded configuration dictionary (currently unused but kept for style).
         """
-        self.folders = config.folders
-        self.output_filename = output_filename
+        self.input_path = input_path
+        self.output_path = output_path
+        self.config = config
         self.df = None
         self.yearly_stats = None
-        # self.output_path will be constructed in the run method
+        
+        # Ensure the output directory exists
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
         
     def _prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Processes the raw DataFrame to calculate yearly percentages of 
         meeting up questions by living location (city vs. non-city).
+        
+        This logic is a direct transcription of steps 1-7 from your Jupyter notebook.
         
         :param df: The input DataFrame.
         :return: A DataFrame with yearly percentages.
@@ -57,6 +46,13 @@ class CategoriesAnalyzer:
         df['is_meeting_up_question'] = (
             (df['is_question'] == 1) & (df['mentions_meet_up'] == 1)
         ).astype(int)
+
+        # --- Calculate Global Statistics for Title ---
+        total_texts = len(df)
+        total_meeting_up_questions_N = df['is_meeting_up_question'].sum()
+        
+        # Calculate percentage of ALL texts that are meeting-up questions
+        total_percentage = (total_meeting_up_questions_N / total_texts) * 100 if total_texts > 0 else 0
 
         # 2. Group by both 'year' and the condition ('living_in_city') and sum the questions
         yearly_counts = df.groupby(['year', 'living_in_city'])[
@@ -106,8 +102,10 @@ class CategoriesAnalyzer:
         logger.info("    -> Generating line plot.")
         
         # Create the figure and axes
+        # We use plt.subplots to get the figure object, matching the example style
         fig, ax = plt.subplots(figsize=(10, 6))
         
+        # Apply the style *to the figure object* (or globally before, but setting it here is clearer)
         plt.style.use('seaborn-v0_8-whitegrid')
 
         # Plot the Non-City Living percentage
@@ -131,19 +129,23 @@ class CategoriesAnalyzer:
         )
 
         # Set the title, labels
-        plot_title = "Despite moving away from hometown, these members of friend group are more active in asking to meet up."
-        ax.set_title(plot_title, fontsize=12, pad=20)
+        plot_title = "Location does not seem to matter: Taking initiative in meeting up comes from non-hometowners"
+        ax.set_title(plot_title, fontsize=14, pad=20)
         ax.set_xlabel("Year", fontsize=12)
         ax.set_ylabel("Percentage of Meeting Up Questions (%)", fontsize=12)
 
         # Ensure X-axis ticks are integers for years
+        # Use a list of year values to set the ticks
         ax.set_xticks(yearly_stats['year'].astype(int).tolist())
 
-        # Adjust the y-axis minimum to create space for the N counts
+        # 1. Adjust the y-axis minimum to create space for the N counts
+        # Set new bottom limit to allow space for text.
         ax.set_ylim(bottom=-5) 
         
-        # Loop through years and annotate the total count
+        # 2. Loop through years and annotate the total count
         for x, n in zip(yearly_stats['year'], yearly_stats['total_meeting_up_questions']):
+            # Position the text at y=-3 (within the new margin).
+            # We format N with a comma for better readability.
             ax.text(
                 x, 
                 -3, 
@@ -158,7 +160,7 @@ class CategoriesAnalyzer:
         # Add a legend
         ax.legend(loc='upper right', fontsize=10)
 
-        # Add a grid
+        # Add a grid for better readability (using the existing axes grid)
         ax.grid(True, linestyle=':', alpha=0.6)
 
         # Improve layout
@@ -168,38 +170,23 @@ class CategoriesAnalyzer:
 
     def run(self) -> Path:
         """
-        Runs the plotting pipeline: loads latest data, performs preparation, 
+        Runs the plotting pipeline: loads data, performs preparation, 
         generates plot, and saves the final image.
         
         :return: Path to the final saved plot image.
         """
-        # --- File Discovery (Input) ---
-        # Look for the latest feature-added file, same as time_series.py
-        input_files = list(self.folders.feature_added.glob("*-features.csv"))
-        
-        if not input_files:
-            logger.error(f"No *-features.csv files found in {self.folders.feature_added}. Exiting.")
-            raise FileNotFoundError(f"No feature-engineered CSV files found in {self.folders.feature_added}")
-            
-        input_path = max(input_files, key=os.path.getmtime)
-        logger.info(f"Selected latest file for analysis: {input_path.name}")
-        
-        # --- Output Path Construction ---
-        plot_output_dir = Path("img/final").resolve()
-        plot_output_dir.mkdir(parents=True, exist_ok=True)
-        self.output_path = plot_output_dir / self.output_filename
-
-        logger.info(f"Loading data for categories analysis from: {input_path.name}")
+        logger.info(f"Loading data for yearly questions analysis from: {self.input_path.name}")
         
         try:
-            # Load the data - assuming no special date parsing needed here
-            self.df = pd.read_csv(input_path)
-            
-            # Ensure 'year' is available, which usually requires 'timestamp' to be loaded and processed,
-            # but since 'year' is a required col, we assume it's pre-calculated in the feature file.
-            
+            # Attempt to load Parquet first, then fallback to CSV
+            parquet_path = self.input_path.with_suffix(".parq")
+            if parquet_path.exists():
+                self.df = pd.read_parquet(parquet_path)
+            else:
+                self.df = pd.read_csv(self.input_path)
+                
         except Exception as e:
-            logger.error(f"Failed to load data from {input_path}: {e}")
+            logger.error(f"Failed to load data from {self.input_path}: {e}")
             raise
         
         # Check if the necessary columns are present
@@ -210,8 +197,8 @@ class CategoriesAnalyzer:
             
         logger.info("Starting yearly questions analysis and visualization...")
         
-        # 1. Prepare the data (passing a copy is good practice)
-        self.yearly_stats = self._prepare_data(self.df.copy())
+        # 1. Prepare the data
+        self.yearly_stats = self._prepare_data(self.df)
         
         # 2. Generate the plot
         fig = self._generate_plot(self.yearly_stats)
@@ -221,52 +208,24 @@ class CategoriesAnalyzer:
         fig.savefig(self.output_path, dpi=300)
         
         logger.info("Yearly questions analysis complete.")
+        # Close the plot to free up memory
         plt.close(fig) 
         return self.output_path
 
+# --- Public function to be used in main.py ---
 
-# --- Configuration Loading and Public Function (Copied from time_series.py) ---
-def _load_config() -> CleanConfig:
-    """Loads configuration from config.toml and returns a CleanConfig object."""
-    with open("config.toml", "rb") as f:
-        config = tomllib.load(f)
-
-    raw = Path(config["raw"])
-    preprocessed = Path(config["preprocessed"])
-    cleaned = Path(config["cleaned"])
-    feature_added = Path(config["feature_added"])
-    datafile = Path(config["input"])
-
-    folders = Folders(
-        raw=raw,
-        preprocessed=preprocessed,
-        cleaned=cleaned,
-        feature_added=feature_added,
-        datafile=datafile,
-    )
-    
-    clean_config = CleanConfig(folders=folders)
-    return clean_config
-
-def run_categories_analysis(output_filename: str) -> Path:
+def run_categories_analysis(input_path: Path, output_path: Path, config: dict) -> Path:
     """
-    Main entry point for the categories analysis and visualization process.
+    Main entry point for the yearly questions analysis and visualization process.
     
-    This function loads the configuration, instantiates the CategoriesAnalyzer, 
-    and runs the full pipeline.
-    
-    :param output_filename: The name of the final plot image file to save.
+    :param input_path: Path to the feature-engineered data file.
+    :param output_path: Path to save the final plot image (.png).
+    :param config: The loaded application configuration.
     :return: Path to the final plot image file.
     """
-    try:
-        config = _load_config()
-    except Exception as e:
-        logger.error(f"Failed to load configuration: {e}")
-        # Use RuntimeError as a generic wrapper for configuration issues
-        raise RuntimeError("Failed to load plotting configuration.")
-        
-    analyzer = CategoriesAnalyzer(
-        config=config,
-        output_filename=output_filename
+    analyzer = MeetingUpQuestionsAnalyzer(
+        input_path=input_path,
+        output_path=output_path,
+        config=config
     )
     return analyzer.run()

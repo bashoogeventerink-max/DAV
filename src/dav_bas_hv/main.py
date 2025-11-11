@@ -9,7 +9,7 @@ from data_handling.clean_data import run_cleaning as clean_data_main
 from data_handling.add_features import run_feature_engineering as feature_engineering_main
 
 # Importing analysis functions
-from graphs.time_series import run_dual_axis_analysis as time_series_main
+from graphs.time_series_graph import run_dual_axis_analysis as time_series_main
 from graphs.categories_graph import run_categories_analysis as categories_analysis_main
 from graphs.distribution_graph import run_distribution_analysis as distribution_analysis_main
 from graphs.correlation_graph import run_correlation_analysis as correlation_analysis_main
@@ -98,7 +98,7 @@ def main():
     else:
         print(f"Time series plot '{time_series_plot_filename}' not found. Running time series analysis...")
         time_series_plot_path = time_series_main(
-            output_filename=time_series_plot_filename # Pass the filename from config
+            output_filename=time_series_plot_filename
         )
         print(f"Time series analysis completed. Plot saved to: {time_series_plot_path}")
 
@@ -108,9 +108,7 @@ def main():
     else:
         print(f"Categories plot '{categories_plot_filename}' not found. Running categories analysis...")
         categories_plot_path = categories_analysis_main(
-            input_path=feature_engineered_filepath,
-            output_path=categories_plot_filepath,
-            config=config
+            output_filename=categories_plot_filename
         )
         print(f"Categories analysis completed. Plot saved to: {categories_plot_path}")
 
@@ -133,9 +131,7 @@ def main():
     else:
         print(f"Correlation plot '{correlation_plot_filename}' not found. Running correlation analysis...")
         correlation_plot_path = correlation_analysis_main(
-            input_path=feature_engineered_filepath,
-            output_path=correlation_plot_filepath,
-            config=config
+            output_filename=correlation_plot_filename
         )
         print(f"Correlation analysis completed. Plot saved to: {correlation_plot_path}")
     
