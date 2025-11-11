@@ -48,6 +48,7 @@ This guide will walk you through cloning the repository and setting up the envir
 3.  Open **VS Code**.
 4.  Click on the **"Clone Git Repository"** option in the Explorer view or Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
 5.  Paste the HTTPS link and choose a local directory to clone the project into.
+6.  Choose to open the file and click 'Yes, I trust the authors'.
 
 #### 2. Environment Setup
 
