@@ -1,47 +1,30 @@
-# add_features.py
-
 # import packages
 import re
-import sys
-import tomllib
 from pathlib import Path
 import pandas as pd
 import numpy as np 
 from loguru import logger
 from textblob import TextBlob
 from typing import Union
-from datetime import datetime
-import click
-import os
 
-# Import from settings - assuming these are defined elsewhere or copied here for completeness
-# For this script to work, you need 'Folders' and 'CleanConfig' from your settings
-# Assuming 'Folders' and 'CleanConfig' are available, e.g., from 'wa_analyzer.settings'
-from .settings import Folders, CleanConfig 
-
-# Configure Loguru (copied from clean_data.py)
-logger.remove()
-logger.add("logs/logfile.log", rotation="1 week", level="DEBUG")
-logger.add(sys.stderr, level="INFO")
-
-# --- FeatureEngineer Class ---
 class FeatureEngineer:
     """
     A class to handle feature engineering steps on a cleaned DataFrame.
     It takes the output of the cleaning step and adds new analytical features.
     """
-    # **CHANGE 1: Use CleanConfig for initialization**
-    def __init__(self, config: CleanConfig):
+    def __init__(self, input_path: Path, output_path: Path, config: dict):
         """
-        :param config: The loaded configuration object including Folders.
+        :param input_path: Path to the cleaned CSV file.
+        :param output_path: Path where the final feature-engineered CSV/Parquet will be saved.
+        :param config: The loaded configuration dictionary (currently unused but kept for consistency).
         """
-        self.folders = config.folders
+        self.input_path = input_path
+        self.output_path = output_path
+        self.config = config
         self.df = None
         
-        # **CHANGE 2: Use self.folders.feature_added for the output directory**
         # Ensure the output directory exists
-        self.folders.feature_added.mkdir(parents=True, exist_ok=True)
-
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _add_timestamp_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Adds timestamp-based features to the DataFrame."""
@@ -211,32 +194,6 @@ class FeatureEngineer:
         )
         return df
 
-    def _save_dataframe(self, df: pd.DataFrame, filename_base: str) -> Path:
-        """
-        Saves the DataFrame to CSV and Parquet with a timestamped filename.
-
-        :param df: The pandas DataFrame to save.
-        :param filename_base: The base name for the file (e.g., "whatsapp-features").
-        :return: Path to the final feature-engineered CSV file.
-        """
-        # Generate the timestamp
-        now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        
-        # Define output file paths
-        # **CHANGE 3: Use self.folders.feature_added for output**
-        outfile_csv = self.folders.feature_added / f"{filename_base}-{now}-features.csv"
-        outfile_parquet = self.folders.feature_added / f"{filename_base}-{now}-features.parq"
-        
-        logger.info(f"Writing CSV to {outfile_csv}")
-        df.to_csv(outfile_csv, index=False)
-        
-        logger.info(f"Writing Parquet to {outfile_parquet}")
-        df.to_parquet(outfile_parquet, index=False)
-        
-        logger.success("Saving complete.")
-        
-        return outfile_csv
-
 
     def run(self) -> Path:
         """
@@ -245,30 +202,18 @@ class FeatureEngineer:
         
         :return: Path to the final feature-engineered CSV file.
         """
-        # **CHANGE 4: Find the latest file in the 'cleaned' folder**
-        input_files = list(self.folders.cleaned.glob("*-cleaned.csv"))
-        
-        if not input_files:
-            logger.error(f"No *-cleaned.csv files found in {self.folders.cleaned}. Exiting.")
-            raise FileNotFoundError(f"No cleaned CSV files found in {self.folders.cleaned}")
-            
-        # Find the file with the most recent modification time (mtime)
-        input_csv_file = max(input_files, key=os.path.getmtime)
-        input_parquet_file = input_csv_file.with_suffix(".parq")
-        
-        logger.info(f"Selected latest file for feature engineering: {input_csv_file.name}")
+        logger.info(f"Loading cleaned data from: {self.input_path.name}")
         
         try:
-            # Load data. Check for Parquet first.
-            if input_parquet_file.exists():
-                logger.info(f"Loading data from {input_parquet_file.name}")
-                self.df = pd.read_parquet(input_parquet_file)
+            # Load data, assuming timestamp is already a clean datetime column
+            # Use 'parquet' if available, otherwise fallback to 'csv'
+            if self.input_path.with_suffix(".parq").exists():
+                self.df = pd.read_parquet(self.input_path.with_suffix(".parq"))
             else:
-                logger.info(f"Loading data from {input_csv_file.name}")
-                self.df = pd.read_csv(input_csv_file, parse_dates=["timestamp"])
+                self.df = pd.read_csv(self.input_path, parse_dates=["timestamp"])
                 
         except Exception as e:
-            logger.error(f"Failed to load data from {input_csv_file}: {e}")
+            logger.error(f"Failed to load data from {self.input_path}: {e}")
             raise
         
         logger.info("Starting feature engineering steps...")
@@ -288,65 +233,29 @@ class FeatureEngineer:
         
         logger.info("Feature engineering steps complete.")
         
-        # Save the final data using the new helper method
-        return self._save_dataframe(self.df, filename_base="whatsapp")
+        # Save the final data
+        logger.info(f"Saving final data to: {self.output_path.name} and Parquet")
+        
+        self.df.to_csv(self.output_path, index=False)
+        self.df.to_parquet(self.output_path.with_suffix(".parq"), index=False)
+        
+        logger.info(f"Feature engineering complete. Saved to {self.output_path.name}")
+        return self.output_path
 
-# --- Main Execution Block ---
+# Public function to be used in main.py
 
-# **Helper function to load config (copied from clean_data.py)**
-def _load_config() -> CleanConfig:
-    """Loads configuration from config.toml and returns a CleanConfig object."""
-    with open("config.toml", "rb") as f:
-        config = tomllib.load(f)
-
-    # Assume 'raw', 'preprocessed', 'cleaned', 'feature_added' are in config.toml
-    raw = Path(config["raw"])
-    preprocessed = Path(config["preprocessed"])
-    cleaned = Path(config["cleaned"]) 
-    feature_added = Path(config["feature_added"]) 
-    datafile = Path(config["input"])
-
-    # Create the Folders object
-    folders = Folders(
-        raw=raw,
-        preprocessed=preprocessed,
-        cleaned=cleaned, 
-        feature_added=feature_added,
-        datafile=datafile,
-    )
-    
-    # Create the CleanConfig object (assuming it holds the Folders object)
-    clean_config = CleanConfig(
-        folders=folders,
-    )
-    return clean_config
-
-# --- NEW PUBLIC FUNCTION (Same pattern as run_cleaning) ---
-def run_feature_engineering() -> Path:
+def run_feature_engineering(input_path: Path, output_path: Path, config: dict) -> Path:
     """
-    Public entry point for the feature engineering process to be called from other modules.
+    Main entry point for the feature engineering process.
     
+    :param input_path: Path to the cleaned CSV (output of data cleaning).
+    :param output_path: Path to save the final feature-engineered CSV/Parquet.
+    :param config: The loaded application configuration.
     :return: Path to the final feature-engineered CSV file.
     """
-    try:
-        config = _load_config()
-    except Exception as e:
-        logger.error(f"Failed to load configuration: {e}")
-        # Use return instead of sys.exit(1) for cleaner external calls
-        raise RuntimeError("Failed to load feature engineering configuration.")
-
-    logger.info(f"Input path assumed from cleaned folder: {config.folders.cleaned}")
-    
-    # Run the feature engineer
-    engineer = FeatureEngineer(config=config)
-    # Return the path of the saved file
+    engineer = FeatureEngineer(
+        input_path=input_path,
+        output_path=output_path,
+        config=config
+    )
     return engineer.run()
-
-@click.command()
-def main():
-    """Main entry point for the feature engineering process (CLI use)."""
-    # Simply call the new run_feature_engineering function
-    run_feature_engineering()
-
-if __name__ == "__main__":
-    main()

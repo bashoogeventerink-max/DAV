@@ -142,8 +142,7 @@ class DataCleaner:
         # Generate the timestamp
         now = datetime.now().strftime("%Y%m%d-%H%M%S")
         
-        # **CHANGE 3: Use self.folders.cleaned as the output directory**
-        # This is analogous to preprocess.py using self.folders.preprocessed
+        # Define output file paths
         outfile_csv = self.folders.cleaned / f"{filename_base}-{now}-cleaned.csv"
         outfile_parquet = self.folders.cleaned / f"{filename_base}-{now}-cleaned.parq"
         
@@ -233,23 +232,32 @@ def _load_config() -> CleanConfig:
     )
     return clean_config
 
-
-@click.command()
-def main():
-    """Main entry point for the data cleaning process."""
-    # We don't need the 'device' option here, as the input is already a CSV.
+# --- NEW PUBLIC FUNCTION ---
+def run_cleaning() -> Path:
+    """
+    Public entry point for the data cleaning process to be called from other modules.
+    
+    :return: Path to the final cleaned CSV file.
+    """
     try:
         config = _load_config()
     except Exception as e:
         logger.error(f"Failed to load configuration: {e}")
-        sys.exit(1)
+        # Use return instead of sys.exit(1) for cleaner external calls
+        raise RuntimeError("Failed to load cleaning configuration.")
 
     logger.info(f"Input path assumed from preprocessed folder: {config.folders.preprocessed}")
     
     # Run the cleaner
     cleaner = DataCleaner(config=config)
-    cleaner.run()
+    # Return the path of the saved file
+    return cleaner.run()
 
+@click.command()
+def main():
+    """Main entry point for the data cleaning process (CLI use)."""
+    # Simply call the new run_cleaning function
+    run_cleaning()
 
 if __name__ == "__main__":
     main()

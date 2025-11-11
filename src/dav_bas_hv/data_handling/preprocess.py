@@ -96,16 +96,13 @@ class WhatsappPreprocessor:
         logger.info(f"Appended {len(appended)} records")
         return records, appended
 
-
-@click.command()
-@click.option(
-    "--device", default="android", help="Device type: iOS, Android, old, or csv"
-)
-def main(device: str):
+def run_preprocess(device: str = "android"):
     with open("config.toml", "rb") as f:
         config = tomllib.load(f) # Loading configuration from TOML file
         raw = Path(config["raw"])
         preprocessed = Path(config["preprocessed"])
+        cleaned = Path(config["cleaned"])
+        feature_added = Path(config["feature_added"])
         datafile = Path(config["input"])
         datetime_format = config["datetime_format"]
         drop_authors = config["drop_authors"]
@@ -132,6 +129,8 @@ def main(device: str):
     folders = Folders(
         raw=raw,
         preprocessed=preprocessed,
+        cleaned=cleaned,
+        feature_added=feature_added,
         datafile=datafile,
     )
     preprocessconfig = PreprocessConfig(
@@ -141,8 +140,17 @@ def main(device: str):
         drop_authors=drop_authors,
     )
     preprocessor = WhatsappPreprocessor(preprocessconfig) # Apply the preprocessor on the datafile saved in raw folder
-    preprocessor()
+    return preprocessor()
 
 
+@click.command()
+@click.option(
+    "--device", default="android", help="Device type: iOS, Android, old, or csv"
+)
+
+def main(device: str):
+    """Main entry point for the preprocessing script."""
+    run_preprocess(device=device)
+    
 if __name__ == "__main__":
     main()
