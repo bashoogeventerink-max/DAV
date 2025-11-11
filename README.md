@@ -60,7 +60,7 @@ The project uses `uv` for dependency management.
     ```
 3.  If the output is `'uv not found'` or similar, install it using the following command (for Linux/macOS):
     ```bash
-    curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
+    curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
     *If you are on Windows, please refer to the [official uv installation guide](https://docs.astral.sh/uv/installation/).*
 4.  Navigate into the project directory:
