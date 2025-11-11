@@ -4,7 +4,7 @@ This project stores the progress made in the Data Analysis & Visualization-cours
 
 ## Description
 
-This
+This project will serve the user as a tool to analyze whatsapp text data. 
 
 ## Getting Started
 
