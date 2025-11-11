@@ -64,15 +64,24 @@ The project uses `uv` for dependency management.
     curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
     *If you are on Windows, please refer to the [official uv installation guide](https://docs.astral.sh/uv/installation/).*
-4.  Navigate into the project directory:
-    ```bash
-    cd DAV
-    ```
-5.  Create the virtual environment and install all project dependencies (including development dependencies) by running:
+4.  Create the virtual environment and install all project dependencies (including development dependencies) by running:
     ```bash
     uv sync --all-extras
     ```
     This command will create a virtual environment (`.venv` folder) and install all required packages.
+5.  Select UV Virtual Environment in VS Code:
+    Open the Command Palette in VS Code (press Ctrl+Shift+P or Cmd+Shift+P).
+
+    Type and select "Python: Select Interpreter".
+
+    Choose the interpreter path that points to the .venv folder in your project. It will usually look something like:
+    ```bash
+    Python X.X.X (.venv)
+    ```
+    Where X.X.X is the Python version.
+
+    Once selected, the environment name (.venv) should appear in the bottom-left corner of your VS Code window, and your imports should start resolving if the packages are present.
+
 
 #### 3. Run the Project
 

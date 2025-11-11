@@ -1,5 +1,5 @@
 [project]
-name = "dav"
+name = "DAV"
 version = "0.1.0"
 description = "This is the code for the Master of Applied Data Science course Data Analysis and Visualisation"
 authors = [
@@ -23,3 +23,6 @@ GitHub = "https://github.com/bashoogeventerink-max/DAV"
 
 [project.scripts]
 mymodule = "mymodule.main:main"
+
+[tool.uv]
+package = true
