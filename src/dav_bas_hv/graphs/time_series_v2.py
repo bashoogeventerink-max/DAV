@@ -2,15 +2,15 @@
 
 # import packages
 import sys
-import tomllib
+import tomllib # NEW: For loading config
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from loguru import logger
-import os
+import os # NEW: For finding latest file
 
-# Assuming correct path for settings is now:
 from data_handling.settings import Folders, CleanConfig 
+# NOTE: We will reuse CleanConfig for plot config structure
 
 logger.remove()
 logger.add("logs/logfile.log", rotation="1 week", level="DEBUG")
@@ -23,7 +23,12 @@ class DualAxisTrendsAnalyzer:
     and average word count over time using a dual-axis plot.
     """
     
+    # CHANGE 1: Take CleanConfig instead of raw paths
     def __init__(self, config: CleanConfig, output_filename: str):
+        """
+        :param config: The loaded configuration object including Folders.
+        :param output_filename: The base name for the plot file (e.g., "time_series_plot_png").
+        """
         self.folders = config.folders
         self.output_filename = output_filename
         self.df = None
@@ -34,7 +39,7 @@ class DualAxisTrendsAnalyzer:
     def _prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Processes the raw DataFrame to calculate monthly message volume, 
-        average word count, and their 6-month rolling mean trend lines.
+        average word count, and their 3-month rolling mean trend lines.
         
         :param df: The input DataFrame.
         :return: A DataFrame with calculated monthly trends and trend lines.
@@ -42,7 +47,7 @@ class DualAxisTrendsAnalyzer:
         logger.info("    -> Resampling data to monthly frequency and calculating trends.")
         
         # 1. Ensure the timestamp column is the index
-        # We assume 'timestamp' is already datetime from the loading step in run()
+        df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
         df = df.set_index('timestamp')
 
         # 2. Calculate Monthly Trends
@@ -52,8 +57,8 @@ class DualAxisTrendsAnalyzer:
         # Combine the two series into one DataFrame
         trends_df = pd.concat([monthly_message_count, monthly_avg_word_count], axis=1).dropna(how='all')
 
-        # 3. Calculate Trend Lines (6-month Rolling Mean - kept 6 for smoother trend)
-        window = 3
+        # 3. Calculate Trend Lines (3-month Rolling Mean)
+        window = 6
         trends_df['volume_trend'] = trends_df['message_count'].rolling(
             window=window, center=True
         ).mean()
@@ -63,12 +68,11 @@ class DualAxisTrendsAnalyzer:
         
         return trends_df
         
-    def _generate_plot(self, trends_df: pd.DataFrame, partnership_dates: pd.Series) -> plt.Figure:
+    def _generate_plot(self, trends_df: pd.DataFrame) -> plt.Figure:
         """
         Generates the dual-axis line plot with custom colors, line styles, and axis ranges.
         
         :param trends_df: The DataFrame containing the monthly trend data.
-        :param partnership_dates: Series of unique partnership start dates.
         :return: The Matplotlib Figure object.
         """
         logger.info("    -> Generating dual-axis plot.")
@@ -76,63 +80,54 @@ class DualAxisTrendsAnalyzer:
         # Create the figure and axes
         fig, ax1 = plt.subplots(figsize=(12, 6))
         
-        # Define colors 
+        # Define colors based on user request
         color_volume = '#ff7f0e'  # Orange
         color_words = '#808080'   # Grey
 
         # --- Left Y-Axis (Message Volume) ---
         ax1.set_xlabel('Date (Monthly)')
-        ax1.set_ylabel('Monthly Message Volume (6-Month Trend)', color=color_volume)
+        ax1.set_ylabel('Monthly Message Volume', color=color_volume)
 
-        # CHANGE 1: Plot ONLY the trend line (now solid)
+        # Plot raw data (solid line)
+        ax1.plot(
+            trends_df.index, trends_df['message_count'], color=color_volume, 
+            linewidth=1.5, linestyle='-', alpha=0.8, label='Monthly Volume Messages'
+        )
+
+        # Plot trend line (dashed line)
         ax1.plot(
             trends_df.index, trends_df['volume_trend'], color=color_volume, 
-            linewidth=2.5, linestyle='-', label='Volume Trend'
+            linewidth=2.5, linestyle='--', label='Monthly Volume Messages (3-month Rolling Mean)'
         )
 
         ax1.tick_params(axis='y', labelcolor=color_volume)
         ax1.grid(axis='y', linestyle='--', alpha=0.7)
-        ax1.set_ylim(0, 800) 
+        ax1.set_ylim(0, 800) # Increased range
 
         # --- Right Y-Axis (Average Word Count) ---
         ax2 = ax1.twinx()
 
-        ax2.set_ylabel('Monthly Average Word Count (6-Month Trend)', color=color_words)
+        ax2.set_ylabel('Monthly Average Word Count', color=color_words)
 
-        # CHANGE 1: Plot ONLY the trend line (now solid)
+        # Plot raw data (solid line)
+        ax2.plot(
+            trends_df.index, trends_df['avg_word_count'], color=color_words, 
+            linewidth=1.5, linestyle='-', alpha=0.8, label='Average Word Count'
+        )
+
+        # Plot trend line (dashed line)
         ax2.plot(
             trends_df.index, trends_df['word_count_trend'], color=color_words, 
-            linewidth=2.5, linestyle='-', label='Avg. Word Count Trend'
+            linewidth=2.5, linestyle='--', label='Average Word Count (3-month Rolling Mean)'
         )
 
         ax2.tick_params(axis='y', labelcolor=color_words)
         ax2.grid(False)
-        ax2.set_ylim(0, 15)
-
-        # --- NEW CHANGE 3: Add Vertical Lines for Partnership Dates ---
-        # Get unique, non-NaT dates for partnership
-        unique_dates = partnership_dates.dropna().unique()
-        
-        if len(unique_dates) > 0:
-            logger.info(f"    -> Adding {len(unique_dates)} vertical lines for partnership start dates.")
-            
-            # Use ax1 to plot the vertical lines (they span both axes)
-            for i, date in enumerate(unique_dates):
-                # Ensure the date is a timestamp object for plotting
-                date_dt = pd.to_datetime(date)
-                
-                # Add a vertical dashed line
-                ax1.axvline(
-                    x=date_dt, 
-                    color='red', 
-                    linestyle=':', 
-                    linewidth=1.0, 
-                    label=f'Moving in with girlfriend' if i == 0 else "" # Only label the first one for the legend
-                )
+        ax2.set_ylim(0, 15) # Increased range
 
         # Title and Layout
         plt.title(
-            'Moving In Together Causes In Less Group Chat Activity With Friends, but Results In Longer, More Detailed Messages.', 
+            'Less, but longer messages over time', 
             fontsize=14
         )
         
@@ -142,22 +137,13 @@ class DualAxisTrendsAnalyzer:
         # Adding legends manually since they are on different axes
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        
-        # Find the line for the vertical event (if present)
-        event_lines = [line for line, label in zip(lines1, labels1) if 'Moving In Event' in label]
-        event_labels = [label for label in labels1 if 'Moving In Event' in label]
-        
-        # Combine all legends: ax1 trend + ax2 trend + event line
-        ax1.legend(
-            [lines1[0]] + lines2 + event_lines, 
-            [labels1[0]] + labels2 + event_labels, 
-            loc='upper left'
-        )
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
         
         fig.tight_layout()
         
         return fig
 
+    # CHANGE 2: Run method finds the latest input file and saves output based on config
     def run(self) -> Path:
         """
         Runs the plotting pipeline: loads latest data, performs preparation, 
@@ -165,32 +151,53 @@ class DualAxisTrendsAnalyzer:
         
         :return: Path to the final saved plot image.
         """
+        
         # --- File Discovery (Input) ---
+        # Find the latest feature-engineered CSV file
         input_files = list(self.folders.feature_added.glob("*-features.csv"))
         
         if not input_files:
             logger.error(f"No *-features.csv files found in {self.folders.feature_added}. Exiting.")
             raise FileNotFoundError(f"No feature-engineered CSV files found in {self.folders.feature_added}")
             
+        # Find the file with the most recent modification time (mtime)
         input_path = max(input_files, key=os.path.getmtime)
         logger.info(f"Selected latest file for analysis: {input_path.name}")
         
         # --- Output Path Construction ---
-        plot_output_dir = Path("img/final").resolve()
+        # Use the base plot folder (e.g., img/final) from config/settings
+        # We assume the analysis plots should go into the parent of one of the data folders
+        # Since Folders doesn't have an explicit 'img' folder, we'll save it to a logical parent 
+        # or assume the 'img' folder path is provided in config.toml as 'plot_output_dir'.
+        # For simplicity, we'll assume the Folders dataclass needs updating or we derive the path:
+        # For now, let's assume the plotting module handles the output path relative to execution.
+        
+        # NOTE: A better solution involves updating your Folders dataclass or config loading.
+        # Given the original run_dual_axis_analysis was passed output_path, we will need 
+        # a way to retrieve the correct image folder path.
+        
+        # Let's assume the config file has a path to the image folder:
+        # Fallback if self.folders doesn't define the plot folder:
+        # We need a robust way to determine the plot output folder.
+        
+        # Using the base filename from config.toml as the target output file name
+        plot_output_dir = Path("img/final").resolve() # Hardcoding this for now, should be from config
         plot_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # The final output path
         self.output_path = plot_output_dir / self.output_filename
 
         logger.info(f"Loading data for trends analysis from: {input_path.name}")
         
         try:
-            # Load with parse_dates for necessary columns
-            self.df = pd.read_csv(input_path, parse_dates=['timestamp', 'date_living_with_partner'])
+            # CHANGE: Load the determined input_path
+            self.df = pd.read_csv(input_path)
         except Exception as e:
             logger.error(f"Failed to load data from {input_path}: {e}")
             raise
         
         # Check if the necessary column is present
-        required_cols = ['timestamp', 'word_count', 'date_living_with_partner']
+        required_cols = ['timestamp', 'word_count']
         if not all(col in self.df.columns for col in required_cols):
             logger.error(f"Missing required columns for plotting: {required_cols}")
             raise ValueError(f"Data is missing required columns: {required_cols}")
@@ -200,24 +207,24 @@ class DualAxisTrendsAnalyzer:
         # 1. Prepare the data
         self.trends_df = self._prepare_data(self.df.copy())
         
-        # 2. Get unique partnership dates for vertical lines
-        partnership_dates = self.df['date_living_with_partner']
+        # 2. Generate the plot
+        fig = self._generate_plot(self.trends_df)
         
-        # 3. Generate the plot
-        fig = self._generate_plot(self.trends_df, partnership_dates)
-        
-        # 4. Save the figure
+        # 3. Save the figure
         logger.info(f"Saving dual-axis trends plot to: {self.output_path.name}")
         fig.savefig(self.output_path, dpi=300)
         
         logger.info("Dual-axis trends analysis complete.")
+        # Close the plot to free up memory
         plt.close(fig) 
         return self.output_path
 
 
-# --- Configuration Loading and Public Function (NO CHANGE) ---
+# --- NEW Configuration Loading and Public Function ---
+
+# Helper function to load config (copied from previous data processing files)
 def _load_config() -> CleanConfig:
-# ... (function body remains the same) ...
+    """Loads configuration from config.toml and returns a CleanConfig object."""
     with open("config.toml", "rb") as f:
         config = tomllib.load(f)
 
@@ -227,6 +234,7 @@ def _load_config() -> CleanConfig:
     feature_added = Path(config["feature_added"])
     datafile = Path(config["input"])
 
+    # Create the Folders object
     folders = Folders(
         raw=raw,
         preprocessed=preprocessed,
@@ -235,11 +243,19 @@ def _load_config() -> CleanConfig:
         datafile=datafile,
     )
     
+    # Create the CleanConfig object (reused for structural consistency)
     clean_config = CleanConfig(folders=folders)
     return clean_config
 
+# CHANGE 3: The new public function
 def run_dual_axis_analysis(output_filename: str) -> Path:
-# ... (function body remains the same) ...
+    """
+    Main entry point for the dual-axis trends analysis and visualization process.
+    It loads the config, finds the latest input file, and runs the analyzer.
+    
+    :param output_filename: The target filename for the plot (e.g., "time_series_plot.png").
+    :return: Path to the final plot image file.
+    """
     try:
         config = _load_config()
     except Exception as e:
@@ -248,6 +264,6 @@ def run_dual_axis_analysis(output_filename: str) -> Path:
         
     analyzer = DualAxisTrendsAnalyzer(
         config=config,
-        output_filename=output_filename
+        output_filename=output_filename # Pass the target filename from main.py
     )
     return analyzer.run()

@@ -98,9 +98,7 @@ def main():
     else:
         print(f"Time series plot '{time_series_plot_filename}' not found. Running time series analysis...")
         time_series_plot_path = time_series_main(
-            input_path=feature_engineered_filepath,
-            output_path=time_series_plot_filepath,
-            config=config
+            output_filename=time_series_plot_filename # Pass the filename from config
         )
         print(f"Time series analysis completed. Plot saved to: {time_series_plot_path}")
 
