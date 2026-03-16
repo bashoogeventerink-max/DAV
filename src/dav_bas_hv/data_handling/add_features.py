@@ -154,6 +154,12 @@ class FeatureEngineer:
         # Ensure message is string and handle NaN gracefully
         df["word_count"] = df["message"].astype(str).str.split().str.len()
         return df
+    
+    def _add_char_count(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculates the length of the message in characters."""
+        logger.info("    -> Adding 'char_count' feature.")
+        df["char_count"] = df["message"].astype(str).str.len()
+        return df
 
     def _add_time_differences(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -276,6 +282,7 @@ class FeatureEngineer:
         # Apply all message-based feature engineering steps
         self.df = self._add_timestamp_features(self.df)
         self.df = self._add_word_count(self.df)
+        self.df = self._add_char_count(self.df)
         self.df = self._add_time_differences(self.df)
         self.df = self._is_question(self.df)
         self.df = self._meet_up_feature(self.df)
