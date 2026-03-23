@@ -88,9 +88,9 @@ class FeatureEngineer:
         df['sentiment_category'] = df['sentiment_polarity'].apply(classify_sentiment)
         return df
 
-    def _find_emojis(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Adds a feature column 'has_emoji' based on message content."""
-        logger.info("    -> Adding 'has_emoji' feature.")
+    def _emoji_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'has_emoji' and 'emoji_count' based on message content."""
+        logger.info("    -> Adding 'has_emoji' and 'emoji_count' features.")
         emoji_pattern = re.compile(
             "["
             "\U0001f600-\U0001f64f"
@@ -106,27 +106,10 @@ class FeatureEngineer:
         def has_emoji(text):
             return bool(emoji_pattern.search(str(text)))
 
-        df["has_emoji"] = df["message"].apply(has_emoji).astype(int)
-        return df
-
-    def _count_emojis(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Adds a feature column 'emoji_count' based on message content."""
-        logger.info("    -> Adding 'emoji_count' feature.")
-        emoji_pattern = re.compile(
-            "["
-            "\U0001f600-\U0001f64f"
-            "\U0001f300-\U0001f5ff"
-            "\U0001f680-\U0001f6ff"
-            "\U0001f1e0-\U0001f1ff"
-            "\U00002702-\U000027b0"
-            "\U000024c2-\U0001f251"
-            "]+",
-            flags=re.UNICODE,
-        )
-
         def get_emoji_count(text):
             return len(emoji_pattern.findall(str(text)))
 
+        df["has_emoji"] = df["message"].apply(has_emoji).astype(int)
         df["emoji_count"] = df["message"].apply(get_emoji_count)
         return df
     
@@ -146,6 +129,30 @@ class FeatureEngineer:
         df["mentions_meet_up"] = df["message"].astype(str).str.lower().apply(
             lambda x: any(word in x for word in meet_up_keywords)
         ).astype(int)
+        return df
+
+    def _add_drink_feature(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds 'drink_count': 1 if the message matches drink keywords and/or beer, wine, or champagne emojis."""
+        logger.info("    -> Adding 'drink_count' feature.")
+        drink_keywords = [
+            'biertje', 'biertjes', 'bier', 'pils', 'pilsje', 'pilsjes', 'wijntje', 'pilsemannetje', 'grolsch', 'hertog', 'heiniken'
+        ]
+        # Beer: mug + clinking mugs; wine: glass; champagne: clinking glasses + bottle with cork
+        drink_emojis = (
+            "\U0001f37a",  # beer mug
+            "\U0001f37b",  # clinking beer mugs
+            "\U0001f377",  # wine glass
+            "\U0001f942",  # clinking glasses
+            "\U0001f37e",  # bottle with popping cork
+        )
+
+        def has_drink_signal(text: str) -> bool:
+            lower = text.lower()
+            if any(word in lower for word in drink_keywords):
+                return True
+            return any(emoji in text for emoji in drink_emojis)
+
+        df["drink_count"] = df["message"].astype(str).apply(has_drink_signal).astype(int)
         return df
 
     def _add_word_count(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -284,13 +291,13 @@ class FeatureEngineer:
         self.df = self._add_word_count(self.df)
         self.df = self._add_char_count(self.df)
         self.df = self._add_time_differences(self.df)
+        self.df = self._add_drink_feature(self.df)
         self.df = self._is_question(self.df)
         self.df = self._meet_up_feature(self.df)
         self.df = self._flag_image_messages(self.df)
         self.df = self._flag_empty_messages(self.df)
         self.df = self._flag_removed_messages(self.df)
-        self.df = self._find_emojis(self.df)
-        self.df = self._count_emojis(self.df)
+        self.df = self._emoji_features(self.df)
         self.df = self._add_sentiment_features(self.df) 
         
         logger.info("Feature engineering steps complete.")
