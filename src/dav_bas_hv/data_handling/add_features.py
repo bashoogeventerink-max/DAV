@@ -168,6 +168,17 @@ class FeatureEngineer:
         df["char_count"] = df["message"].astype(str).str.len()
         return df
 
+    def _talk_dialect(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'talk_dialect' indicating if the user is talking in a dialect."""
+        logger.info("    -> Adding 'talk_dialect' feature.")
+        twents_keywords = [
+            'keals', 'goed te pas', 'pow', 'poah', 'poh', 'goddumme', 'tommeh', 'tuffel', 'onmeunig', 'ajoh', 'joa', 'woar', 'poar', 'geet', 'huuln'
+        ]
+        df["talk_dialect"] = df["message"].astype(str).str.lower().apply(
+            lambda x: any(word in x for word in talk_dialect_keywords)
+        ).astype(int)
+        return df
+
     def _add_time_differences(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Calculates the time difference between consecutive messages in seconds,
