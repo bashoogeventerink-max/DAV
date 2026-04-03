@@ -124,8 +124,35 @@ class FeatureEngineer:
         """Adds a feature column 'mentions_meet_up' indicating if the message mentions to meet up."""
         logger.info("    -> Adding 'mentions_meet_up' feature.")
         meet_up_keywords = [
-            'afspreken', 'biertje', 'bier', 'vnv', 'vanavond', 'drinken', 'pils', 'pilsje', 'wat doen', 'weekend', 'vrijdag', 'vrijdagavond', 'zaterdag', 'zaterdagavond'            
-        ]
+            'afspreken', 
+            'biertje', 
+            'bier', 
+            'vnv', 
+            'vanavond', 
+            'drinken', 
+            'pils', 
+            'pilsje', 
+            'wat doen', 
+            'weekend', 
+            'vrijdag', 
+            'vrijdagavond', 
+            'zaterdag', 
+            'zaterdagavond', 
+            'plan', 
+            'plannen', 
+            'morgenavond', 
+            'morgen',
+            'avond',
+            'avonden',
+            'avonden',
+            'vieren',
+            'verjaardag',
+            'aanhang',
+            'aanhangsel',
+            'housewarming',
+            'feest',
+            'feestje'
+            ]
 
         df["mentions_meet_up"] = df["message"].astype(str).str.lower().apply(
             lambda x: any(word in x for word in meet_up_keywords)
