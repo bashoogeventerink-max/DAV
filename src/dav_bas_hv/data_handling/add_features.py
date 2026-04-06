@@ -200,10 +200,25 @@ class FeatureEngineer:
         """Adds a feature column 'talk_dialect' indicating if the user is talking in a dialect."""
         logger.info("    -> Adding 'talk_dialect' feature.")
         twents_keywords = [
-            'keals', 'goed te pas', 'pow', 'poah', 'poh', 'goddumme', 'tommeh', 'tuffel', 'onmeunig', 'ajoh', 'joa', 'woar', 'poar', 'geet', 'huuln'
+            'keals', 
+            'keal',
+            'goed te pas', 
+            'pow', 'poah', 
+            'poh', 
+            'goddumme', 
+            'tommeh', 
+            'tuffel', 
+            'onmeunig', 
+            'ajoh', 
+            'joa', 
+            'woar', 
+            'poar', 
+            'geet', 
+            'huuln',
+            'kloar'
         ]
         df["talk_dialect"] = df["message"].astype(str).str.lower().apply(
-            lambda x: any(word in x for word in talk_dialect_keywords)
+            lambda x: any(word in x for word in twents_keywords)
         ).astype(int)
         return df
 
@@ -333,6 +348,7 @@ class FeatureEngineer:
         self.df = self._add_drink_feature(self.df)
         self.df = self._is_question(self.df)
         self.df = self._meet_up_feature(self.df)
+        self.df = self._talk_dialect(self.df)
         self.df = self._flag_image_messages(self.df)
         self.df = self._flag_empty_messages(self.df)
         self.df = self._flag_removed_messages(self.df)
