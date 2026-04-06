@@ -48,7 +48,7 @@ class FeatureEngineer:
         logger.info("    -> Adding timestamp features.")
         df['year'] = df['timestamp'].dt.year
         df['month'] = df['timestamp'].dt.month
-        df['month_year'] = df['timestamp'].dt.strftime('%B %Y')
+        df['month_year'] = df['timestamp'].dt.strftime('%Y-%m')
         df['week'] = df['timestamp'].dt.isocalendar().week
         df['day'] = df['timestamp'].dt.day
         df['hour'] = df['timestamp'].dt.hour
