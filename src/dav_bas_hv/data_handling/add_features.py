@@ -303,7 +303,7 @@ class FeatureEngineer:
             "ik kan vrijdag wel"
         ]
 
-        df["acceptance_dialect"] = df["message"].astype(str).str.lower().apply(
+        df["accept_invite"] = df["message"].astype(str).str.lower().apply(
             lambda x: any(word in x for word in acceptance_keywords)
         ).astype(int)
         return df
@@ -336,7 +336,7 @@ class FeatureEngineer:
             "ik kan vrijdag niet"
         ]
 
-        df["decline_dialect"] = df["message"].astype(str).str.lower().apply(
+        df["decline_invite"] = df["message"].astype(str).str.lower().apply(
             lambda x: any(word in x for word in reject_keywords)
         ).astype(int)
         return df
