@@ -302,15 +302,12 @@ class FeatureEngineer:
             "ik kan vrijdagavond wel",
             "ik kan vrijdag wel"
         ]
-        # 2. Create the function to check for acceptance
-        def check_for_acceptance(text):
-            text_lower = str(text).lower()  # Handle potential non-string values
-            for keyword in acceptance_keywords:
-                if keyword in text_lower:
-                    return 1
-            return 0
-        df["registers_acceptance"] = df["message"].apply(check_for_acceptance)
-    
+
+        df["acceptance_dialect"] = df["message"].astype(str).str.lower().apply(
+            lambda x: any(word in x for word in acceptance_keywords)
+        ).astype(int)
+        return df
+
     def _add_decline_feature(self, df: pd.DataFrame) -> pd.DataFrame:
         """Adds a feature column 'registers_decline' indicating if the message registers decline."""
         logger.info("    -> Adding 'registers_decline' feature.")
@@ -338,13 +335,10 @@ class FeatureEngineer:
             "ik kan vrijdagavond niet",
             "ik kan vrijdag niet"
         ]
-        def check_for_decline(text):
-            text_lower = str(text).lower()  # Handle potential non-string values
-            for keyword in reject_keywords:
-                if keyword in text_lower:
-                    return 1
-            return 0
-        df["registers_decline"] = df["message"].apply(check_for_decline)
+
+        df["decline_dialect"] = df["message"].astype(str).str.lower().apply(
+            lambda x: any(word in x for word in reject_keywords)
+        ).astype(int)
         return df
 
     def _save_dataframe(self, df: pd.DataFrame, filename_base: str) -> Path:
