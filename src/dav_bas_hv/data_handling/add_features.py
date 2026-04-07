@@ -277,6 +277,75 @@ class FeatureEngineer:
             0
         )
         return df
+    
+    def _add_acceptance_feature(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'registers_acceptance' indicating if the message registers acceptance."""
+        logger.info("    -> Adding 'registers_acceptance' feature.")
+        # 1. Define the acceptance keywords
+        acceptance_keywords = [
+            "prima",
+            "ik ben er wel",
+            "ik kan wel",
+            "ik kan ook wel",
+            "kom er aan",
+            "vind ik goed",
+            "ik ga wel mee",
+            "ik wil wel mee",
+            "ik kan daarna nog wel",
+            "kom wel ff langs",
+            "ik ook wel",
+            "goed idee",
+            "ik kan vnv wel",
+            "ik kan vanavond wel",
+            "ik kan zaterdagavond wel",
+            "ik kan zaterdag wel",
+            "ik kan vrijdagavond wel",
+            "ik kan vrijdag wel"
+        ]
+        # 2. Create the function to check for acceptance
+        def check_for_acceptance(text):
+            text_lower = str(text).lower()  # Handle potential non-string values
+            for keyword in acceptance_keywords:
+                if keyword in text_lower:
+                    return 1
+            return 0
+        df["registers_acceptance"] = df["message"].apply(check_for_acceptance)
+    
+    def _add_decline_feature(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'registers_decline' indicating if the message registers decline."""
+        logger.info("    -> Adding 'registers_decline' feature.")
+        # 1. Define the decline keywords
+        reject_keywords = [
+            "ik kan niet",
+            "ik niet",
+            "helaas",
+            "helaas niet",
+            "niet",
+            "gaat niet",
+            "geen tijd",
+            "ik ben er niet",
+            "ik kan er niet",
+            "ik heb al iets",
+            "ik heb andere plannen",
+            "ik ben bezet",
+            "ik ben er dit weekend niet",
+            "ik kan dit weekend niet",
+            "ik blijf dit weekend in amsterdam",
+            "ik kan vnv niet",
+            "ik kan vanavond niet",
+            "ik kan zaterdagavond niet",
+            "ik kan zaterdag niet",
+            "ik kan vrijdagavond niet",
+            "ik kan vrijdag niet"
+        ]
+        def check_for_decline(text):
+            text_lower = str(text).lower()  # Handle potential non-string values
+            for keyword in reject_keywords:
+                if keyword in text_lower:
+                    return 1
+            return 0
+        df["registers_decline"] = df["message"].apply(check_for_decline)
+        return df
 
     def _save_dataframe(self, df: pd.DataFrame, filename_base: str) -> Path:
         """
@@ -349,6 +418,8 @@ class FeatureEngineer:
         self.df = self._is_question(self.df)
         self.df = self._meet_up_feature(self.df)
         self.df = self._talk_dialect(self.df)
+        self.df = self._add_acceptance_feature(self.df)
+        self.df = self._add_decline_feature(self.df)
         self.df = self._flag_image_messages(self.df)
         self.df = self._flag_empty_messages(self.df)
         self.df = self._flag_removed_messages(self.df)
