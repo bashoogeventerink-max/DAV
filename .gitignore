@@ -5,3 +5,4 @@ uv_lock
 logfile*
 *.json
 __pycache__/
+*.egg-info/

@@ -48,6 +48,7 @@ class FeatureEngineer:
         logger.info("    -> Adding timestamp features.")
         df['year'] = df['timestamp'].dt.year
         df['month'] = df['timestamp'].dt.month
+        df['month_year'] = df['timestamp'].dt.strftime('%Y-%m')
         df['week'] = df['timestamp'].dt.isocalendar().week
         df['day'] = df['timestamp'].dt.day
         df['hour'] = df['timestamp'].dt.hour
@@ -88,9 +89,9 @@ class FeatureEngineer:
         df['sentiment_category'] = df['sentiment_polarity'].apply(classify_sentiment)
         return df
 
-    def _find_emojis(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Adds a feature column 'has_emoji' based on message content."""
-        logger.info("    -> Adding 'has_emoji' feature.")
+    def _emoji_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'has_emoji' and 'emoji_count' based on message content."""
+        logger.info("    -> Adding 'has_emoji' and 'emoji_count' features.")
         emoji_pattern = re.compile(
             "["
             "\U0001f600-\U0001f64f"
@@ -106,27 +107,10 @@ class FeatureEngineer:
         def has_emoji(text):
             return bool(emoji_pattern.search(str(text)))
 
-        df["has_emoji"] = df["message"].apply(has_emoji).astype(int)
-        return df
-
-    def _count_emojis(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Adds a feature column 'emoji_count' based on message content."""
-        logger.info("    -> Adding 'emoji_count' feature.")
-        emoji_pattern = re.compile(
-            "["
-            "\U0001f600-\U0001f64f"
-            "\U0001f300-\U0001f5ff"
-            "\U0001f680-\U0001f6ff"
-            "\U0001f1e0-\U0001f1ff"
-            "\U00002702-\U000027b0"
-            "\U000024c2-\U0001f251"
-            "]+",
-            flags=re.UNICODE,
-        )
-
         def get_emoji_count(text):
             return len(emoji_pattern.findall(str(text)))
 
+        df["has_emoji"] = df["message"].apply(has_emoji).astype(int)
         df["emoji_count"] = df["message"].apply(get_emoji_count)
         return df
     
@@ -140,12 +124,63 @@ class FeatureEngineer:
         """Adds a feature column 'mentions_meet_up' indicating if the message mentions to meet up."""
         logger.info("    -> Adding 'mentions_meet_up' feature.")
         meet_up_keywords = [
-            'afspreken', 'biertje', 'bier', 'vnv', 'vanavond', 'drinken', 'pils', 'pilsje', 'wat doen', 'weekend', 'vrijdag', 'vrijdagavond', 'zaterdag', 'zaterdagavond'            
-        ]
+            'afspreken', 
+            'biertje', 
+            'bier', 
+            'vnv', 
+            'vanavond', 
+            'drinken', 
+            'pils', 
+            'pilsje', 
+            'wat doen', 
+            'weekend', 
+            'vrijdag', 
+            'vrijdagavond', 
+            'zaterdag', 
+            'zaterdagavond', 
+            'plan', 
+            'plannen', 
+            'morgenavond', 
+            'morgen',
+            'avond',
+            'avonden',
+            'avonden',
+            'vieren',
+            'verjaardag',
+            'aanhang',
+            'aanhangsel',
+            'housewarming',
+            'feest',
+            'feestje'
+            ]
 
         df["mentions_meet_up"] = df["message"].astype(str).str.lower().apply(
             lambda x: any(word in x for word in meet_up_keywords)
         ).astype(int)
+        return df
+
+    def _add_drink_feature(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds 'drink_count': 1 if the message matches drink keywords and/or beer, wine, or champagne emojis."""
+        logger.info("    -> Adding 'drink_count' feature.")
+        drink_keywords = [
+            'biertje', 'biertjes', 'bier', 'pils', 'pilsje', 'pilsjes', 'wijntje', 'pilsemannetje', 'grolsch', 'hertog', 'heiniken'
+        ]
+        # Beer: mug + clinking mugs; wine: glass; champagne: clinking glasses + bottle with cork
+        drink_emojis = (
+            "\U0001f37a",  # beer mug
+            "\U0001f37b",  # clinking beer mugs
+            "\U0001f377",  # wine glass
+            "\U0001f942",  # clinking glasses
+            "\U0001f37e",  # bottle with popping cork
+        )
+
+        def has_drink_signal(text: str) -> bool:
+            lower = text.lower()
+            if any(word in lower for word in drink_keywords):
+                return True
+            return any(emoji in text for emoji in drink_emojis)
+
+        df["drink_count"] = df["message"].astype(str).apply(has_drink_signal).astype(int)
         return df
 
     def _add_word_count(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -153,6 +188,38 @@ class FeatureEngineer:
         logger.info("    -> Adding 'word_count' feature.")
         # Ensure message is string and handle NaN gracefully
         df["word_count"] = df["message"].astype(str).str.split().str.len()
+        return df
+    
+    def _add_char_count(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculates the length of the message in characters."""
+        logger.info("    -> Adding 'char_count' feature.")
+        df["char_count"] = df["message"].astype(str).str.len()
+        return df
+
+    def _talk_dialect(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'talk_dialect' indicating if the user is talking in a dialect."""
+        logger.info("    -> Adding 'talk_dialect' feature.")
+        twents_keywords = [
+            'keals', 
+            'keal',
+            'goed te pas', 
+            'pow', 'poah', 
+            'poh', 
+            'goddumme', 
+            'tommeh', 
+            'tuffel', 
+            'onmeunig', 
+            'ajoh', 
+            'joa', 
+            'woar', 
+            'poar', 
+            'geet', 
+            'huuln',
+            'kloar'
+        ]
+        df["talk_dialect"] = df["message"].astype(str).str.lower().apply(
+            lambda x: any(word in x for word in twents_keywords)
+        ).astype(int)
         return df
 
     def _add_time_differences(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -209,6 +276,69 @@ class FeatureEngineer:
             1, 
             0
         )
+        return df
+    
+    def _add_acceptance_feature(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'registers_acceptance' indicating if the message registers acceptance."""
+        logger.info("    -> Adding 'registers_acceptance' feature.")
+        # 1. Define the acceptance keywords
+        acceptance_keywords = [
+            "prima",
+            "ik ben er wel",
+            "ik kan wel",
+            "ik kan ook wel",
+            "kom er aan",
+            "vind ik goed",
+            "ik ga wel mee",
+            "ik wil wel mee",
+            "ik kan daarna nog wel",
+            "kom wel ff langs",
+            "ik ook wel",
+            "goed idee",
+            "ik kan vnv wel",
+            "ik kan vanavond wel",
+            "ik kan zaterdagavond wel",
+            "ik kan zaterdag wel",
+            "ik kan vrijdagavond wel",
+            "ik kan vrijdag wel"
+        ]
+
+        df["accept_invite"] = df["message"].astype(str).str.lower().apply(
+            lambda x: any(word in x for word in acceptance_keywords)
+        ).astype(int)
+        return df
+
+    def _add_decline_feature(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds a feature column 'registers_decline' indicating if the message registers decline."""
+        logger.info("    -> Adding 'registers_decline' feature.")
+        # 1. Define the decline keywords
+        reject_keywords = [
+            "ik kan niet",
+            "ik niet",
+            "helaas",
+            "helaas niet",
+            "niet",
+            "gaat niet",
+            "geen tijd",
+            "ik ben er niet",
+            "ik kan er niet",
+            "ik heb al iets",
+            "ik heb andere plannen",
+            "ik ben bezet",
+            "ik ben er dit weekend niet",
+            "ik kan dit weekend niet",
+            "ik blijf dit weekend in amsterdam",
+            "ik kan vnv niet",
+            "ik kan vanavond niet",
+            "ik kan zaterdagavond niet",
+            "ik kan zaterdag niet",
+            "ik kan vrijdagavond niet",
+            "ik kan vrijdag niet"
+        ]
+
+        df["decline_invite"] = df["message"].astype(str).str.lower().apply(
+            lambda x: any(word in x for word in reject_keywords)
+        ).astype(int)
         return df
 
     def _save_dataframe(self, df: pd.DataFrame, filename_base: str) -> Path:
@@ -276,14 +406,18 @@ class FeatureEngineer:
         # Apply all message-based feature engineering steps
         self.df = self._add_timestamp_features(self.df)
         self.df = self._add_word_count(self.df)
+        self.df = self._add_char_count(self.df)
         self.df = self._add_time_differences(self.df)
+        self.df = self._add_drink_feature(self.df)
         self.df = self._is_question(self.df)
         self.df = self._meet_up_feature(self.df)
+        self.df = self._talk_dialect(self.df)
+        self.df = self._add_acceptance_feature(self.df)
+        self.df = self._add_decline_feature(self.df)
         self.df = self._flag_image_messages(self.df)
         self.df = self._flag_empty_messages(self.df)
         self.df = self._flag_removed_messages(self.df)
-        self.df = self._find_emojis(self.df)
-        self.df = self._count_emojis(self.df)
+        self.df = self._emoji_features(self.df)
         self.df = self._add_sentiment_features(self.df) 
         
         logger.info("Feature engineering steps complete.")
